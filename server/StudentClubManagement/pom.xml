@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.studentclubmanagement</groupId>
-    <artifactId>StudentClubManagement</artifactId>
+    <artifactId>Elevate</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>StudentClubManagement</name>
+    <name>Elevate</name>
     <description>StudentClubManagement</description>
     <url/>
     <licenses>
