@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/club-requests")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Club Request APIs", description = "APIs for managing requests to join clubs, including submitting, retrieving, approving, and rejecting club requests.")
 public class ClubRequestController {
@@ -31,7 +30,7 @@ public class ClubRequestController {
     }
 
     /**
-     * Creates a new club join request.
+     * Creates a new club join request (Accessible by Students).
      *
      * @param clubRequestDTO The club request details including user ID, club ID, and comment.
      * @return A response entity containing a success message and the created request.
@@ -39,17 +38,16 @@ public class ClubRequestController {
      * @throws ClubLimitExceededException If the user has reached the maximum number of clubs.
      * @throws RequestAlreadyExistsException If the user has already requested to join this club.
      */
-    @PostMapping
+    @PostMapping("/student/club-requests")
     @Operation(
         summary = "Create a Club Request",
-        description = "Allows a user to request to join a specific club."
+        description = "Allows a student to request to join a specific club."
     )
     public ResponseEntity<ApiResponseDTO<ClubRequestDTO>> createClubRequest(@RequestBody ClubRequestDTO clubRequestDTO)
             throws ClubNotFoundException, ClubLimitExceededException, RequestAlreadyExistsException {
 
         ClubRequest savedRequest = clubRequestService.createClubRequest(clubRequestDTO);
 
-        // Convert to DTO before sending response
         ClubRequestDTO responseDTO = new ClubRequestDTO(savedRequest.getUser().getUserId(),
                 savedRequest.getClub().getClubId(),
                 savedRequest.getComment());
@@ -59,12 +57,12 @@ public class ClubRequestController {
     }
 
     /**
-     * Retrieves all pending club requests for a specific club (Admin only).
+     * Retrieves all pending club requests for a specific club (Accessible by Club Admins & Super Admins).
      *
      * @param clubId The unique ID of the club whose requests need to be fetched.
      * @return A response entity containing a list of club requests.
      */
-    @GetMapping("/{clubId}")
+    @GetMapping("/clubadmin/club-requests/{clubId}")
     @Operation(
         summary = "Get Club Requests by Club ID",
         description = "Fetches all pending club requests for a specific club (Admin only)."
@@ -75,17 +73,16 @@ public class ClubRequestController {
     ) {
         List<ClubRequest> requests = clubRequestService.getClubRequestsByClubId(clubId);
 
-        // Convert to DTOs
-        return getApiResponseDTOResponseEntity(requests);
+        return ResponseEntity.ok(new ApiResponseDTO<>("Club requests fetched successfully", convertToDTOs(requests)));
     }
 
     /**
-     * Retrieves all club requests made by a specific user.
+     * Retrieves all club requests made by a specific user (Accessible by Students).
      *
      * @param userId The unique ID of the user whose club requests need to be fetched.
      * @return A response entity containing a list of club requests made by the user.
      */
-    @GetMapping("/user/{userId}")
+    @GetMapping("/student/club-requests/user/{userId}")
     @Operation(
         summary = "Get Club Requests by User ID",
         description = "Fetches all club requests made by a specific user."
@@ -96,12 +93,11 @@ public class ClubRequestController {
     ) {
         List<ClubRequest> requests = clubRequestService.getClubRequestsByUserId(userId);
 
-        // Convert to DTOs
-        return getApiResponseDTOResponseEntity(requests);
+        return ResponseEntity.ok(new ApiResponseDTO<>("Club requests fetched successfully", convertToDTOs(requests)));
     }
 
-    private ResponseEntity<ApiResponseDTO<List<ClubRequestDTO>>> getApiResponseDTOResponseEntity(List<ClubRequest> requests) {
-        List<ClubRequestDTO> responseDTOs = requests.stream()
+    private List<ClubRequestDTO> convertToDTOs(List<ClubRequest> requests) {
+        return requests.stream()
                 .map(req -> new ClubRequestDTO(req.getUser().getUserId(),
                         req.getClub().getClubName(),
                         req.getClub().getClubId(),
@@ -110,12 +106,10 @@ public class ClubRequestController {
                         req.getCreatedAt(),
                         req.getUpdatedAt()))
                 .collect(Collectors.toList());
-
-        return ResponseEntity.ok(new ApiResponseDTO<>("Club requests fetched successfully", responseDTOs));
     }
 
     /**
-     * Approves a club request (Admin action).
+     * Approves a club request (Accessible by Club Admins & Super Admins).
      *
      * @param requestId The unique ID of the club request to approve.
      * @return A success message indicating the approval of the club request.
@@ -123,7 +117,7 @@ public class ClubRequestController {
      * @throws ClubCapacityExceededException If the club has no available slots.
      * @throws RequestAlreadyExistsException If the user is already a member of the club.
      */
-    @PutMapping("/{requestId}/approve")
+    @PutMapping("/clubadmin/club-requests/{requestId}/approve")
     @Operation(
         summary = "Approve a Club Request",
         description = "Allows an admin to approve a club join request."
@@ -137,12 +131,12 @@ public class ClubRequestController {
     }
 
     /**
-     * Rejects a club request (Admin action).
+     * Rejects a club request (Accessible by Club Admins & Super Admins).
      *
      * @param requestId The unique ID of the club request to reject.
      * @return A success message indicating the rejection of the club request.
      */
-    @PutMapping("/{requestId}/reject")
+    @PutMapping("/clubadmin/club-requests/{requestId}/reject")
     @Operation(
         summary = "Reject a Club Request",
         description = "Allows an admin to reject a club join request."

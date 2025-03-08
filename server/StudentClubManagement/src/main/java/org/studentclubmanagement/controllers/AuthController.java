@@ -79,12 +79,18 @@ public class AuthController {
 
     /**
      * Validates if the given email address has the correct format.
+     * ^(?![_\-.0-9]) → Ensures it does not start with _, -, . or any digit (0-9).
+     * [A-Za-z0-9+_.-]+ → Matches valid characters for the local part (before @).
+     * @ → Matches the @ symbol.
+     * [A-Za-z0-9.-]+ → Matches the domain name (after @).
+     * \. → Ensures at least one dot in the domain.
+     * [A-Za-z]{2,}$ → Ensures the TLD (top-level domain) is at least 2 characters long.
      *
      * @param email The email address to validate.
      * @return true if the email format is valid, false otherwise.
      */
     private boolean isValidEmail(String email) {
-        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        String emailRegex = "^(?![_\\-.0-9])[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         return Pattern.matches(emailRegex, email);
     }
 

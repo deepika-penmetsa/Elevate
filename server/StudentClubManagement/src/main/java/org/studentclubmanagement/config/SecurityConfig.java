@@ -23,31 +23,24 @@ public class SecurityConfig {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
-   @Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http
-            .csrf(csrf -> csrf.disable()) // Disable CSRF for JWT-based authentication
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/auth/**").permitAll() // Allow login/signup
-                    .requestMatchers(
-                            "/swagger-ui/**",
-                            "/v3/api-docs/**",
-                            "/swagger-ui.html",
-                            "/swagger-resources/**",
-                            "/configuration/ui",
-                            "/configuration/security",
-                            "/webjars/**"
-                    ).permitAll() // Allow Swagger access
-                    .requestMatchers("/api/admin/**").hasAuthority("SUPER_ADMIN")
-                    .requestMatchers("/api/clubadmin/**").hasAnyAuthority("CLUB_ADMIN", "SUPER_ADMIN")
-                    .requestMatchers("/api/student/**").hasAnyAuthority("STUDENT", "CLUB_ADMIN", "SUPER_ADMIN")
-                    .anyRequest().authenticated() // Secure everything else
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for JWT-based authentication
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Make it stateless
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**").permitAll() // Allow login/signup
+                        .requestMatchers("/swagger-ui/**","/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**",
+                                         "/configuration/ui", "/configuration/security", "/webjars/**").permitAll() // Allow Swagger access
+                        .requestMatchers("/admin/**").hasAuthority("ROLE_SUPER_ADMIN") // Super Admin Access
+                        .requestMatchers("/clubadmin/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CLUB_ADMIN") // Club Admin & Super Admin
+                        .requestMatchers("/student/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CLUB_ADMIN", "ROLE_STUDENT") // Student, Club Admin & Super Admin
+                        .anyRequest().authenticated() // Secure everything else
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-    return http.build();
-}
-
+        return http.build();
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

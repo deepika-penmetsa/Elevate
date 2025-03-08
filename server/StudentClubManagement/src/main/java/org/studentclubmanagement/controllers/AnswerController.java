@@ -16,7 +16,7 @@ import org.studentclubmanagement.services.AnswerService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/user/answers")
+@RequestMapping("/student/answers")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Answer APIs", description = "APIs for managing answers to questions in a club, allowing users to post and retrieve answers.")
 public class AnswerController {
@@ -28,7 +28,7 @@ public class AnswerController {
     }
 
     /**
-     * Creates a new answer for a question.
+     * Creates a new answer for a question (Accessible by Students, Club Admins, and Super Admins).
      *
      * @param answerDTO The answer details including the question ID, content, and author.
      * @return A response entity containing a success message and the created answer.
@@ -48,7 +48,7 @@ public class AnswerController {
     }
 
     /**
-     * Retrieves all answers for a specific question.
+     * Retrieves all answers for a specific question (Accessible by Students, Club Admins, and Super Admins).
      *
      * @param questionId The unique ID of the question of whose answers need to be fetched.
      * @return A response entity containing a list of answers for the specified question.
