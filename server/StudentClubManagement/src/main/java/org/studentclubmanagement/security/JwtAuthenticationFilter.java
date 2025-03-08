@@ -10,10 +10,13 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -30,22 +33,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
             chain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
-        String email = jwtUtil.extractUsername(token);
-        String role = jwtUtil.extractRole(token);
 
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = new User(email, "", Collections.emptyList());
-            UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        try {
+            // Extract email and role from token
+            String email = jwtUtil.extractUsername(token);
+            String role = jwtUtil.extractRole(token);
 
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                // Convert extracted role into Spring Security authority
+                List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+
+                // Assign role-based authorities to UserDetails
+                UserDetails userDetails = new User(email, "", authorities);
+
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                // Debugging log for assigned authorities
+                System.out.println("✅ Assigned Authorities: " + userDetails.getAuthorities());
+            }
+
+        } catch (Exception e) {
+            System.out.println("⚠️ Error processing JWT: " + e.getMessage());
         }
 
         chain.doFilter(request, response);

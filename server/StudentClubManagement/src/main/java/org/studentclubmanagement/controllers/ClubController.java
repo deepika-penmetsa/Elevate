@@ -18,20 +18,19 @@ import org.studentclubmanagement.services.ClubService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/club")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
-@Tag(name = "Club APIs", description = "APIs for managing clubs, including creating, updating, retrieving, and deleting club records.")
+@Tag(name = "Club APIs", description = "APIs for managing and viewing clubs.")
 public class ClubController {
 
     @Autowired
     private ClubService clubService;
 
     /**
-     * Retrieves a list of all clubs.
+     * Retrieves a list of all clubs (Accessible by Students, Club Admins, and Super Admins).
      *
      * @return List of ClubDTOs wrapped in ApiResponseDTO.
      */
-    @GetMapping
+    @GetMapping("/student/clubs")
     @Operation(
         summary = "Get All Clubs",
         description = "Fetches a list of all clubs available in the system."
@@ -42,12 +41,12 @@ public class ClubController {
     }
 
     /**
-     * Retrieves a club by its unique ID.
+     * Retrieves a club by its unique ID (Accessible by Super Admins).
      *
      * @param id The ID of the club.
      * @return The corresponding ClubDTO if found, otherwise a not found response.
      */
-    @GetMapping("/{id}")
+    @GetMapping("/admin/clubs/{id}")
     @Operation(
         summary = "Get Club by ID",
         description = "Fetches details of a specific club by its unique ID."
@@ -66,31 +65,7 @@ public class ClubController {
     }
 
     /**
-     * Retrieves a club by its name.
-     *
-     * @param clubName The name of the club.
-     * @return The corresponding ClubDTO if found, otherwise a not found response.
-     */
-    @GetMapping("/getClubByName")
-    @Operation(
-        summary = "Get Club by Name",
-        description = "Fetches details of a specific club by its name."
-    )
-    public ResponseEntity<ApiResponseDTO<ClubDTO>> getClubByName(
-        @Parameter(description = "The name of the club to retrieve", required = true, example = "Science Club")
-        @RequestParam String clubName
-    ) {
-        try {
-            ClubDTO clubDTO = clubService.findClubByNameWithImage(clubName);
-            return ResponseEntity.ok(new ApiResponseDTO<>("Club retrieved successfully", clubDTO));
-        } catch (ClubNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponseDTO<>("Club not found with the name: " + clubName, null));
-        }
-    }
-
-    /**
-     * Creates a new club.
+     * Creates a new club (Accessible by Super Admins).
      *
      * @param clubName The name of the club.
      * @param description The club's description.
@@ -101,7 +76,7 @@ public class ClubController {
      * @param image The club's image (optional).
      * @return The newly created ClubDTO.
      */
-    @PostMapping(consumes = "multipart/form-data")
+    @PostMapping("/admin/clubs")
     @Operation(
         summary = "Create a New Club",
         description = "Allows the creation of a new club with details including name, description, slots, admin, and an optional image."
@@ -130,7 +105,7 @@ public class ClubController {
     }
 
     /**
-     * Updates an existing club.
+     * Updates an existing club (Accessible by Super Admins).
      *
      * @param id The ID of the club to be updated.
      * @param clubName The new name of the club.
@@ -142,10 +117,10 @@ public class ClubController {
      * @param image The updated club image (optional).
      * @return The updated ClubDTO.
      */
-    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
+    @PutMapping("/admin/clubs/{id}/update")
     @Operation(
         summary = "Update an Existing Club",
-        description = "Updates club details such as name, description, slots, and optionally its image."
+        description = "Allows super admins to update club details such as name, description, slots, and optionally its image."
     )
     public ResponseEntity<ApiResponseDTO<ClubDTO>> updateClub(
         @Parameter(description = "The unique ID of the club to update", required = true, example = "1")
@@ -173,15 +148,15 @@ public class ClubController {
     }
 
     /**
-     * Deletes a club by its ID.
+     * Deletes a club (Accessible by Super Admins).
      *
      * @param id The ID of the club to delete.
      * @return A success or error message.
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/admin/clubs/{id}")
     @Operation(
         summary = "Delete a Club",
-        description = "Deletes a club from the system by its ID."
+        description = "Allows super admins to delete a club from the system by its ID."
     )
     public ResponseEntity<ApiResponseDTO<String>> deleteClub(
         @Parameter(description = "The unique ID of the club to delete", required = true, example = "1")

@@ -16,7 +16,6 @@ import org.studentclubmanagement.services.AnnouncementService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/announcements")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Announcement APIs", description = "APIs for managing club announcements, allowing creation and retrieval of announcements for specific clubs.")
 public class AnnouncementController {
@@ -28,14 +27,14 @@ public class AnnouncementController {
     }
 
     /**
-     * Creates a new announcement for a club.
+     * Creates a new announcement for a club (Accessible by Club Admins & Super Admins).
      *
      * @param announcementDTO The announcement details including club ID, message, and date.
      * @return A response entity containing a success message and the created announcement.
      * @throws ClubNotFoundException If the specified club does not exist.
      * @throws UnauthorizedActionException If the user is not authorized to create an announcement.
      */
-    @PostMapping
+    @PostMapping("/clubadmin/announcements")
     @Operation(
         summary = "Create an Announcement",
         description = "Allows club admins to create an announcement for their respective clubs."
@@ -48,12 +47,12 @@ public class AnnouncementController {
     }
 
     /**
-     * Retrieves all announcements for a specific club.
+     * Retrieves all announcements for a specific club (Accessible by Students, Club Admins, and Super Admins).
      *
      * @param clubId The unique ID of the club whose announcements need to be fetched.
      * @return A response entity containing a list of announcements for the specified club.
      */
-    @GetMapping("/{clubId}")
+    @GetMapping("/student/announcements/{clubId}")
     @Operation(
         summary = "Get Announcements for a Club",
         description = "Fetches all announcements associated with a specific club ID."

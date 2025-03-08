@@ -18,7 +18,6 @@ import org.studentclubmanagement.services.QuestionService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/questions")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Question APIs", description = "APIs for managing questions in clubs, allowing users to post and retrieve questions.")
 public class QuestionController {
@@ -27,14 +26,14 @@ public class QuestionController {
     private QuestionService questionService;
 
     /**
-     * Creates a new question within a club.
+     * Creates a new question within a club (Accessible by Students, Club Admins, and Super Admins).
      *
      * @param questionRequestDTO The question details including club ID, title, and content.
      * @return A response entity containing a success message and the created question.
      * @throws ClubNotFoundException If the specified club does not exist.
      * @throws UndefinedUserClubException If the user is not a member of the club.
      */
-    @PostMapping
+    @PostMapping("/student/questions")
     @Operation(
         summary = "Create a Question",
         description = "Allows users to post a question within a specific club."
@@ -47,12 +46,12 @@ public class QuestionController {
     }
 
     /**
-     * Retrieves all questions posted in a specific club.
+     * Retrieves all questions posted in a specific club (Accessible by Students, Club Admins, and Super Admins).
      *
      * @param clubId The unique ID of the club whose questions need to be fetched.
      * @return A response entity containing a list of questions for the specified club.
      */
-    @GetMapping("/{clubId}")
+    @GetMapping("/student/questions/{clubId}")
     @Operation(
         summary = "Get Questions by Club ID",
         description = "Fetches all questions associated with a specific club."
