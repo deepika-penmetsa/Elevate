@@ -1,24 +1,32 @@
 package org.studentclubmanagement.dtos;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
+
+import java.util.Date;
 
 public class UpdateUserDTO {
-    @NotBlank(message = "First name is mandatory")
-    @Size(max = 50, message = "First name must be less than 50 characters")
+
+    @Size(max = 50)
     private String firstName;
 
-    @NotBlank(message = "Last name is mandatory")
-    @Size(max = 50, message = "Last name must be less than 50 characters")
+    @Size(max = 50)
     private String lastName;
 
-    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
+    @Pattern(regexp = "\\d{10}")
     private String phone;
 
-    @Size(max = 200, message = "Address must be less than 200 characters")
-    private String address;
+    // Address fields
+    private String street;
+    private String apartment;
+    private String city;
+    private String state;
+    private String zipcode;
+    private String country;
+
+    private String bio;
+    private Date birthday;
+
+    // Getters and Setters
 
     public String getFirstName() {
         return firstName;
@@ -44,11 +52,67 @@ public class UpdateUserDTO {
         this.phone = phone;
     }
 
-    public String getAddress() {
-        return address;
+    public String getStreet() {
+        return street;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getApartment() {
+        return apartment;
+    }
+
+    public void setApartment(String apartment) {
+        this.apartment = apartment;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getZipcode() {
+        return zipcode;
+    }
+
+    public void setZipcode(String zipcode) {
+        this.zipcode = zipcode;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public Date getBirthday() {
+        return birthday;
+    }
+
+    public void setBirthday(Date birthday) {
+        this.birthday = birthday;
     }
 }

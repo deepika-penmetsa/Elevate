@@ -1,37 +1,58 @@
 package org.studentclubmanagement.dtos;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import org.studentclubmanagement.models.Role;
 import java.util.Date;
 
 public class UserDTO {
 
-    @NotBlank(message = "First name is mandatory")
-    @Size(max = 50, message = "First name must be less than 50 characters")
+    @NotBlank
+    @Size(max = 50)
     private String firstName;
 
-    @NotBlank(message = "Last name is mandatory")
-    @Size(max = 50, message = "Last name must be less than 50 characters")
+    @NotBlank
+    @Size(max = 50)
     private String lastName;
 
-    @Email(message = "Email should be valid")
-    @NotBlank(message = "Email is mandatory")
+    @Email
+    @NotBlank
     private String email;
 
-    @NotBlank(message = "Password cannot be empty")
-    @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters")
+    @NotBlank
+    @Size(min = 8, max = 20)
     private String password;
 
-    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
+    @Pattern(regexp = "\\d{10}")
     private String phone;
 
-    @Size(max = 200, message = "Address must be less than 200 characters")
-    private String address;
+    // Address fields
+    @Size(max = 100)
+    private String street;
 
-    @NotNull(message = "Role is mandatory")
+    @Size(max = 50)
+    private String apartment;
+
+    @Size(max = 50)
+    private String city;
+
+    @Size(max = 50)
+    private String state;
+
+    @Size(max = 10)
+    private String zipcode;
+
+    @Size(max = 50)
+    private String country;
+
+    @Size(max = 500)
+    private String bio;
+
+    @NotNull
     private Role role;
 
     private Date birthday;
+
 
     // Getters and Setters
 
@@ -75,12 +96,60 @@ public class UserDTO {
         this.phone = phone;
     }
 
-    public String getAddress() {
-        return address;
+    public String getStreet() {
+        return street;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getApartment() {
+        return apartment;
+    }
+
+    public void setApartment(String apartment) {
+        this.apartment = apartment;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getZipcode() {
+        return zipcode;
+    }
+
+    public void setZipcode(String zipcode) {
+        this.zipcode = zipcode;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
     public Role getRole() {

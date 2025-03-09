@@ -2,7 +2,8 @@ package org.studentclubmanagement.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -18,27 +19,27 @@ public class Club {
     private String clubName;
 
     @NotBlank(message = "Description cannot be blank")
-    @Size(max = 500, message = "Description must be less than 500 characters")
+    @Size(max = 5000, message = "Description must be less than 5000 characters")
     private String description;
 
-    @Min(value = 0, message = "Number of members cannot be negative")
-    private int noOfMembers = 0;
+    private int noOfMembers; // Default: 0 (Assigned dynamically)
 
-    @Min(value = 1, message = "Available slots must be at least 1")
-    private int availableSlots;
+    private int availableSlots; // Default: totalSlots - noOfMembers (Assigned dynamically)
 
-    @Min(value = 1, message = "Total slots must be at least 1")
-    private int totalSlots;
+    private int totalSlots; // Default: 20 (Assigned dynamically)
 
     @JsonIgnore
     @OneToOne
     @JoinColumn(name = "club_admin_user_id")
     private User clubAdmin;
 
-    // Store image as byte array (BLOB)
     @Lob
-    @Column(name = "image", columnDefinition = "LONGBLOB")
-    private byte[] image;
+    @Column(name = "club_image", columnDefinition = "LONGBLOB")
+    private byte[] clubImage;
+
+    @Lob
+    @Column(name = "club_background_image", columnDefinition = "LONGBLOB")
+    private byte[] clubBackgroundImage;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -67,34 +68,43 @@ public class Club {
     @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ClubAdminRequest> clubAdminRequests;
 
+    /**
+     * Ensures default values for `availableSlots`, `totalSlots`, and `noOfMembers` when creating a club.
+     */
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+
+        // Set default values if not provided
+        if (this.totalSlots <= 0) {
+            this.totalSlots = 20; // Default total slots
+        }
+        if (this.noOfMembers < 0) {
+            this.noOfMembers = 0; // Default noOfMembers
+        }
+
+        // Automatically adjust availableSlots
+        this.availableSlots = this.totalSlots - this.noOfMembers;
     }
 
+    /**
+     * Ensures data consistency when updating a club.
+     */
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+
+        // Prevent reducing totalSlots below noOfMembers
+        if (this.totalSlots < this.noOfMembers) {
+            throw new IllegalArgumentException("Total slots cannot be less than the number of current members.");
+        }
+
+        // Ensure available slots remain consistent
+        this.availableSlots = this.totalSlots - this.noOfMembers;
     }
 
     // Getters and Setters
-    public byte[] getImage() {
-        return image;
-    }
-
-    public void setImage(byte[] image) {
-        this.image = image;
-    }
-
-
-    public User getClubAdmin() {
-        return clubAdmin;
-    }
-
-    public void setClubAdmin(User clubAdmin) {
-        this.clubAdmin = clubAdmin;
-    }
 
     public Long getClubId() {
         return clubId;
@@ -125,7 +135,11 @@ public class Club {
     }
 
     public void setNoOfMembers(int noOfMembers) {
+        if (noOfMembers < 0) {
+            throw new IllegalArgumentException("Number of members cannot be negative.");
+        }
         this.noOfMembers = noOfMembers;
+        this.availableSlots = this.totalSlots - noOfMembers; // Adjust available slots dynamically
     }
 
     public int getAvailableSlots() {
@@ -133,6 +147,9 @@ public class Club {
     }
 
     public void setAvailableSlots(int availableSlots) {
+        if (availableSlots > this.totalSlots) {
+            throw new IllegalArgumentException("Available slots cannot exceed total slots.");
+        }
         this.availableSlots = availableSlots;
     }
 
@@ -141,70 +158,42 @@ public class Club {
     }
 
     public void setTotalSlots(int totalSlots) {
+        if (totalSlots < this.noOfMembers) {
+            throw new IllegalArgumentException("Total slots cannot be less than the number of current members.");
+        }
         this.totalSlots = totalSlots;
+        this.availableSlots = totalSlots - this.noOfMembers; // Adjust available slots dynamically
+    }
+
+    public User getClubAdmin() {
+        return clubAdmin;
+    }
+
+    public void setClubAdmin(User clubAdmin) {
+        this.clubAdmin = clubAdmin;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public byte[] getClubImage() {
+        return clubImage;
     }
 
-    public Set<UserClub> getUserClubs() {
-        return userClubs;
+    public void setClubImage(byte[] clubImage) {
+        this.clubImage = clubImage;
     }
 
-    public void setUserClubs(Set<UserClub> userClubs) {
-        this.userClubs = userClubs;
+    public byte[] getClubBackgroundImage() {
+        return clubBackgroundImage;
     }
 
-    public Set<Announcement> getAnnouncements() {
-        return announcements;
-    }
-
-    public void setAnnouncements(Set<Announcement> announcements) {
-        this.announcements = announcements;
-    }
-
-    public Set<ClubRequest> getRequests() {
-        return requests;
-    }
-
-    public void setRequests(Set<ClubRequest> requests) {
-        this.requests = requests;
-    }
-
-    public Set<Question> getQuestions() {
-        return questions;
-    }
-
-    public void setQuestions(Set<Question> questions) {
-        this.questions = questions;
-    }
-
-    public Set<Answer> getAnswers() {
-        return answers;
-    }
-
-    public void setAnswers(Set<Answer> answers) {
-        this.answers = answers;
-    }
-
-    public Set<ClubAdminRequest> getClubAdminRequests() {
-        return clubAdminRequests;
-    }
-
-    public void setClubAdminRequests(Set<ClubAdminRequest> clubAdminRequests) {
-        this.clubAdminRequests = clubAdminRequests;
+    public void setClubBackgroundImage(byte[] clubBackgroundImage) {
+        this.clubBackgroundImage = clubBackgroundImage;
     }
 }

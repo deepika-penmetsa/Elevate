@@ -6,14 +6,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.studentclubmanagement.dtos.*;
+import org.studentclubmanagement.models.Role;
 import org.studentclubmanagement.models.User;
 import org.studentclubmanagement.services.UserService;
-import org.studentclubmanagement.exceptions.*;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
@@ -23,154 +27,200 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    /**
-     * Retrieves all users (Accessible by Super Admins).
-     *
-     * @return A list of all users.
-     */
     @GetMapping("/admin/users")
-    @Operation(
-        summary = "Get All Users",
-        description = "Fetches a list of all registered users."
-    )
+    @Operation(summary = "Get All Users", description = "Fetches a list of all registered users.")
     public ResponseEntity<ApiResponseDTO<List<UserResponseDTO>>> getAllUsers() {
-        List<UserResponseDTO> users = userService.getAllUsers();
-        return ResponseEntity.ok(new ApiResponseDTO<>("Successfully retrieved all users", users));
+        return ResponseEntity.ok(new ApiResponseDTO<>("Users retrieved successfully", userService.getAllUsers()));
     }
 
-    /**
-     * Retrieves a user by ID (Accessible by Super Admins).
-     *
-     * @param id The unique ID of the user.
-     * @return The user's details.
-     */
     @GetMapping("/admin/users/{id}")
-    @Operation(
-        summary = "Get User by ID",
-        description = "Fetches user details by their unique ID."
-    )
+    @Operation(summary = "Get User by ID", description = "Fetches user details by their unique ID.")
     public ResponseEntity<ApiResponseDTO<UserResponseDTO>> getUserById(
         @Parameter(description = "The unique ID of the user", required = true, example = "1")
         @PathVariable Long id
     ) {
-        try {
-            UserResponseDTO user = userService.getUserInUserResponseDTO(id);
-            return ResponseEntity.ok(new ApiResponseDTO<>("User retrieved successfully", user));
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponseDTO<>("User not found", null));
-        }
+        return ResponseEntity.ok(new ApiResponseDTO<>("User retrieved", userService.getUserById(id)));
     }
 
-    /**
-     * Retrieves users whose email starts with the given prefix (Accessible by Students, Club Admins, and Super Admins).
-     *
-     * @param email The email prefix.
-     * @return A list of users matching the email prefix.
-     */
     @GetMapping("/student/users/email")
-    @Operation(
-        summary = "Get Users by Email Prefix",
-        description = "Fetches users whose email starts with the given prefix."
-    )
-    public ResponseEntity<ApiResponseDTO<List<UserResponseDTO>>> getUserByEmail(
+    @Operation(summary = "Get Users by Email Prefix", description = "Fetches users whose email starts with the given prefix.")
+    public ResponseEntity<ApiResponseDTO<List<UserResponseDTO>>> getUserByEmailPrefix(
         @Parameter(description = "Email prefix to search for", required = true, example = "john")
         @RequestParam String email
     ) {
-        List<UserResponseDTO> users = userService.getAllUsersStartingWithEmail(email);
-        return ResponseEntity.ok(new ApiResponseDTO<>("Successfully retrieved all users", users));
+        return ResponseEntity.ok(new ApiResponseDTO<>("Users retrieved", userService.getAllUsersStartingWithEmail(email)));
     }
 
     /**
-     * Registers a new user (Signup) (Accessible by Students).
-     *
-     * @param userDTO The user details for registration.
-     * @return The newly created user's details.
+     * **Registers a new user with optional profile photo.**
+     * - Accepts `profilePhoto` as `MultipartFile`.
      */
-    @PostMapping("/student/register")
-    @Operation(
-        summary = "Register a New User",
-        description = "Allows students to sign up and create an account."
-    )
-    public ResponseEntity<ApiResponseDTO> createUser(@Validated @RequestBody UserDTO userDTO) {
-        try {
-            User savedUser = userService.createUserFromDTO(userDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponseDTO("User Registered Successfully", savedUser));
-        } catch (UserAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ApiResponseDTO("User Already Exists [CHECK EMAIL & USER ID]", null));
-        }
+    @PostMapping(value = "/auth/users/signup", consumes = {"multipart/form-data"})
+    @Operation(summary = "Register a New User", description = "Allows students to sign up and create an account.")
+    public ResponseEntity<ApiResponseDTO> createUser(
+        @RequestParam(value = "firstName", required = true) String firstName,
+        @RequestParam(value = "lastName", required = true) String lastName,
+        @RequestParam(value = "email", required = true) String email,
+        @RequestParam(value = "password", required = true) String password,
+        @RequestParam(value = "phone", required = false) String phone,
+        @RequestParam(value = "street", required = false) String street,
+        @RequestParam(value = "apartment", required = false) String apartment,
+        @RequestParam(value = "city", required = false) String city,
+        @RequestParam(value = "state", required = false) String state,
+        @RequestParam(value = "zipcode", required = false) String zipcode,
+        @RequestParam(value = "country", required = false) String country,
+        @RequestParam(value = "bio", required = false) String bio,
+        @RequestParam(value = "role", required = true) Role role,
+        @RequestParam(value = "birthday", required = false) String birthdayStr,
+        @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto
+    ) throws ParseException {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setFirstName(firstName);
+        userDTO.setLastName(lastName);
+        userDTO.setEmail(email);
+        userDTO.setPassword(password);
+        userDTO.setPhone(phone);
+        userDTO.setStreet(street);
+        userDTO.setApartment(apartment);
+        userDTO.setCity(city);
+        userDTO.setState(state);
+        userDTO.setZipcode(zipcode);
+        userDTO.setCountry(country);
+        userDTO.setBio(bio);
+        userDTO.setRole(role);
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        Date birthday = formatter.parse(birthdayStr);
+        userDTO.setBirthday(birthday);
+
+        User user = userService.createUser(userDTO, profilePhoto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponseDTO("User Registered Successfully", user));
     }
 
+
+
     /**
-     * Updates user profile (Accessible by Students, Club Admins, and Super Admins).
-     *
-     * @param id The user ID.
-     * @param updatedUserDTO The updated user details.
-     * @return The updated user.
+     * **Updates user profile with optional profile photo.**
      */
-    @PutMapping("/student/profile/{id}/update")
-    @Operation(
-        summary = "Update User Profile",
-        description = "Allows students, club admins, and super admins to update their profile details."
-    )
+    @PutMapping(value = "/student/profile/{id}/update", consumes = {"multipart/form-data"})
+    @Operation(summary = "Update User Profile", description = "Allows students, club admins, and super admins to update their profile details.")
     public ResponseEntity<ApiResponseDTO<UserResponseDTO>> updateUserProfile(
-        @Parameter(description = "The user ID", required = true, example = "1")
-        @PathVariable Long id,
-        @Validated @RequestBody UpdateUserDTO updatedUserDTO
-    ) {
-        try {
-            UserResponseDTO savedUser = userService.updateUserFromDTO(id, updatedUserDTO);
-            return ResponseEntity.ok(new ApiResponseDTO<>("User profile updated successfully", savedUser));
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponseDTO<>("Error: User not found", null));
+        @Parameter(description = "The user ID", required = true, example = "1") @PathVariable Long id,
+        @RequestParam(value = "firstName", required = false) String firstName,
+        @RequestParam(value = "lastName", required = false) String lastName,
+        @RequestParam(value = "phone", required = false) String phone,
+        @RequestParam(value = "street", required = false) String street,
+        @RequestParam(value = "apartment", required = false) String apartment,
+        @RequestParam(value = "city", required = false) String city,
+        @RequestParam(value = "state", required = false) String state,
+        @RequestParam(value = "zipcode", required = false) String zipcode,
+        @RequestParam(value = "country", required = false) String country,
+        @RequestParam(value = "bio", required = false) String bio,
+        @RequestParam(value = "birthday", required = false) String birthdayStr,
+        @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto
+    ) throws ParseException {
+        UpdateUserDTO updatedUserDTO = new UpdateUserDTO();
+        updatedUserDTO.setFirstName(firstName);
+        updatedUserDTO.setLastName(lastName);
+        updatedUserDTO.setPhone(phone);
+        updatedUserDTO.setStreet(street);
+        updatedUserDTO.setApartment(apartment);
+        updatedUserDTO.setCity(city);
+        updatedUserDTO.setState(state);
+        updatedUserDTO.setZipcode(zipcode);
+        updatedUserDTO.setCountry(country);
+        updatedUserDTO.setBio(bio);
+
+        if (birthdayStr != null && !birthdayStr.isEmpty()) {
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+            Date birthday = formatter.parse(birthdayStr);
+            updatedUserDTO.setBirthday(birthday);
         }
+
+        return ResponseEntity.ok(new ApiResponseDTO<>("User updated successfully", userService.updateUser(id, updatedUserDTO, profilePhoto)));
     }
 
-    /**
-     * Updates a user (Admin action) (Accessible by Super Admins).
-     *
-     * @param id The user ID.
-     * @param userDTO The updated user details.
-     * @return The updated user.
-     */
-    @PutMapping("/admin/users/{id}/update")
-    @Operation(
-        summary = "Admin: Update User Information",
-        description = "Allows an admin to update an existing user's details."
-    )
+
+    @PutMapping(value = "/admin/users/{id}/update", consumes = {"multipart/form-data"})
+    @Operation(summary = "Admin: Update User Information", description = "Allows an admin to update an existing user's details.")
     public ResponseEntity<ApiResponseDTO<UserResponseDTO>> updateUserByAdmin(
-        @Parameter(description = "The user ID", required = true, example = "1")
-        @PathVariable Long id,
-        @Validated @RequestBody UserDTO userDTO
-    ) {
-        try {
-            UserResponseDTO savedUser = userService.updateUserFromUserDTO(id, userDTO);
-            return ResponseEntity.ok(new ApiResponseDTO<>("User updated successfully", savedUser));
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponseDTO<>("Error: User not found", null));
+        @Parameter(description = "The user ID", required = true, example = "1") @PathVariable Long id,
+        @RequestParam(value = "firstName", required = false) String firstName,
+        @RequestParam(value = "lastName", required = false) String lastName,
+        @RequestParam(value = "email", required = false) String email,
+        @RequestParam(value = "password", required = false) String password,
+        @RequestParam(value = "phone", required = false) String phone,
+        @RequestParam(value = "street", required = false) String street,
+        @RequestParam(value = "apartment", required = false) String apartment,
+        @RequestParam(value = "city", required = false) String city,
+        @RequestParam(value = "state", required = false) String state,
+        @RequestParam(value = "zipcode", required = false) String zipcode,
+        @RequestParam(value = "country", required = false) String country,
+        @RequestParam(value = "bio", required = false) String bio,
+        @RequestParam(value = "role", required = false) Role role,
+        @RequestParam(value = "birthday", required = false) String birthdayStr,
+        @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto
+    ) throws ParseException {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setFirstName(firstName);
+        userDTO.setLastName(lastName);
+        userDTO.setEmail(email);
+        userDTO.setPassword(password);
+        userDTO.setPhone(phone);
+        userDTO.setStreet(street);
+        userDTO.setApartment(apartment);
+        userDTO.setCity(city);
+        userDTO.setState(state);
+        userDTO.setZipcode(zipcode);
+        userDTO.setCountry(country);
+        userDTO.setBio(bio);
+        userDTO.setRole(role);
+
+        if (birthdayStr != null && !birthdayStr.isEmpty()) {
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+            Date birthday = formatter.parse(birthdayStr);
+            userDTO.setBirthday(birthday);
         }
+
+        return ResponseEntity.ok(new ApiResponseDTO<>("User updated successfully", userService.updateUserFromUserDTO(id, userDTO, profilePhoto)));
     }
 
+
     /**
-     * Deletes a user (Accessible by Super Admins).
-     *
-     * @param id The user ID.
-     * @return A success or error message.
+     * **Partially updates a user profile, including profile photo.**
+     * - Accepts `profilePhoto` as `MultipartFile`.
+     * - Accepts a `Map<String, String>` of updates for specific fields.
      */
+    @PatchMapping(value = "/student/profile/{id}", consumes = {"multipart/form-data"})
+    @Operation(summary = "Partially Update User Profile", description = "Allows updating specific fields or profile photo without modifying other details.")
+    public ResponseEntity<ApiResponseDTO<UserResponseDTO>> patchUser(
+        @Parameter(description = "The user ID", required = true, example = "1") @PathVariable Long id,
+        @RequestParam Map<String, String> updates,
+        @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto
+
+    ){
+        return ResponseEntity.ok(new ApiResponseDTO<>("User updated successfully", userService.patchUser(id, updates, profilePhoto)));
+    }
+
+
+    /**
+     * **Partially updates a user profile**
+     * - Accepts `profilePhoto` as `MultipartFile`.
+     */
+    @PatchMapping(value = "/student/update/profile-photo/{id}", consumes = {"multipart/form-data"})
+    @Operation(summary = "Update User Profile Photo", description = "Allows to update user profile photo without modifying other details.")
+    public ResponseEntity<ApiResponseDTO<UserResponseDTO>> patchUser(
+        @Parameter(description = "The user ID", required = true, example = "1") @PathVariable Long id,
+        @RequestParam(value = "profilePhoto", required = true) MultipartFile profilePhoto
+    ){
+        return ResponseEntity.ok(new ApiResponseDTO<>("User updated successfully", userService.patchUserProfilePhoto(id, profilePhoto)));
+    }
+
     @DeleteMapping("/admin/users/{id}")
-    @Operation(
-        summary = "Delete a User",
-        description = "Allows super admins to delete a user from the system."
-    )
+    @Operation(summary = "Delete a User", description = "Allows super admins to delete a user from the system.")
     public ResponseEntity<ApiResponseDTO<String>> deleteUser(
-        @Parameter(description = "The user ID", required = true, example = "1")
-        @PathVariable Long id
+        @Parameter(description = "The user ID", required = true, example = "1") @PathVariable Long id
     ) {
-        try {
-            userService.deleteUser(id);
-            return ResponseEntity.ok(new ApiResponseDTO<>("User deleted successfully", null));
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponseDTO<>("Error: User not found", null));
-        }
+        userService.deleteUser(id);
+        return ResponseEntity.ok(new ApiResponseDTO<>("User deleted successfully", null));
     }
 }

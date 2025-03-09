@@ -12,7 +12,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -43,11 +42,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // Extract email and role from token
             String email = jwtUtil.extractUsername(token);
-            String role = jwtUtil.extractRole(token);
-
+            String role = jwtUtil.extractRole(token); // No "ROLE_" prefix
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Convert extracted role into Spring Security authority
                 List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
 
                 // Assign role-based authorities to UserDetails
@@ -58,13 +55,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                // Debugging log for assigned authorities
-                System.out.println("✅ Assigned Authorities: " + userDetails.getAuthorities());
             }
 
-        } catch (Exception e) {
-            System.out.println("⚠️ Error processing JWT: " + e.getMessage());
+        } catch (Exception ignored) {
+            // Handle JWT validation errors silently (consider logging in production)
         }
 
         chain.doFilter(request, response);

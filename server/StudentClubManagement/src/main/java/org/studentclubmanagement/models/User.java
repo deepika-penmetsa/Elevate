@@ -1,5 +1,6 @@
 package org.studentclubmanagement.models;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -15,11 +16,11 @@ public class User {
     private Long userId;
 
     @NotBlank(message = "First name is mandatory")
-    @Size(max = 50, message = "First name must be less than 50 characters")
+    @Size(max = 50)
     private String firstName;
 
     @NotBlank(message = "Last name is mandatory")
-    @Size(max = 50, message = "Last name must be less than 50 characters")
+    @Size(max = 50)
     private String lastName;
 
     @Email(message = "Email should be valid")
@@ -27,25 +28,51 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @JsonIgnore // Prevent password from being serialized
+    @JsonIgnore
     @Column(nullable = false, length = 255)
     private String password;
 
     @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
     private String phone;
 
-    @Size(max = 200, message = "Address must be less than 200 characters")
-    private String address;
+    // Address fields
+    @Size(max = 100)
+    private String street;
 
-    @NotNull(message = "Role is mandatory")
+    @Size(max = 50)
+    private String apartment;
+
+    @Size(max = 50)
+    private String city;
+
+    @Size(max = 50)
+    private String state;
+
+    @Size(max = 10)
+    private String zipcode;
+
+    @Size(max = 50)
+    private String country;
+
+    // New Fields
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] profilePhoto;
+
+    @Size(max = 500)
+    private String bio;
+
+    @NotNull
     @Enumerated(EnumType.STRING)
     private Role role = Role.STUDENT;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @Temporal(TemporalType.DATE)
     private Date birthday;
 
-    @Min(value = 0, message = "Joined clubs cannot be negative")
-    @Max(value = 3, message = "A user can join a maximum of 3 clubs")
+
+    @Min(value = 0)
+    @Max(value = 3)
     private int joinedClubs = 0;
 
     @JsonIgnore
@@ -59,26 +86,6 @@ public class User {
     @JsonManagedReference
     private Set<UserClub> userClubs;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ClubRequest> clubRequests;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "postedBy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Announcement> announcements;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Question> questions;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Answer> answers;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "clubAdmin", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ClubAdminRequest> clubAdminRequests;
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -90,7 +97,7 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    // Getters and Setters for all fields
 
     public Long getUserId() {
         return userId;
@@ -140,12 +147,68 @@ public class User {
         this.phone = phone;
     }
 
-    public String getAddress() {
-        return address;
+    public String getStreet() {
+        return street;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getApartment() {
+        return apartment;
+    }
+
+    public void setApartment(String apartment) {
+        this.apartment = apartment;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getZipcode() {
+        return zipcode;
+    }
+
+    public void setZipcode(String zipcode) {
+        this.zipcode = zipcode;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public byte[] getProfilePhoto() {
+        return profilePhoto;
+    }
+
+    public void setProfilePhoto(byte[] profilePhoto) {
+        this.profilePhoto = profilePhoto;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
     public Role getRole() {
@@ -172,6 +235,14 @@ public class User {
         this.joinedClubs = joinedClubs;
     }
 
+    public Club getClub() {
+        return club;
+    }
+
+    public void setClub(Club club) {
+        this.club = club;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -194,45 +265,5 @@ public class User {
 
     public void setUserClubs(Set<UserClub> userClubs) {
         this.userClubs = userClubs;
-    }
-
-    public Set<ClubRequest> getClubRequests() {
-        return clubRequests;
-    }
-
-    public void setClubRequests(Set<ClubRequest> clubRequests) {
-        this.clubRequests = clubRequests;
-    }
-
-    public Set<Announcement> getAnnouncements() {
-        return announcements;
-    }
-
-    public void setAnnouncements(Set<Announcement> announcements) {
-        this.announcements = announcements;
-    }
-
-    public Set<Question> getQuestions() {
-        return questions;
-    }
-
-    public void setQuestions(Set<Question> questions) {
-        this.questions = questions;
-    }
-
-    public Set<Answer> getAnswers() {
-        return answers;
-    }
-
-    public void setAnswers(Set<Answer> answers) {
-        this.answers = answers;
-    }
-
-    public Set<ClubAdminRequest> getClubAdminRequests() {
-        return clubAdminRequests;
-    }
-
-    public void setClubAdminRequests(Set<ClubAdminRequest> clubAdminRequests) {
-        this.clubAdminRequests = clubAdminRequests;
     }
 }

@@ -3,24 +3,29 @@ package org.studentclubmanagement.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.studentclubmanagement.dtos.SignInRequestDTO;
+import org.springframework.web.multipart.MultipartFile;
 import org.studentclubmanagement.dtos.UpdateUserDTO;
 import org.studentclubmanagement.dtos.UserDTO;
 import org.studentclubmanagement.dtos.UserResponseDTO;
+import org.studentclubmanagement.exceptions.UserNotFoundException;
 import org.studentclubmanagement.models.User;
 import org.studentclubmanagement.repositories.UserRepository;
-import org.studentclubmanagement.exceptions.*;
 
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class UserService implements UserDetailsService {
+public class UserService implements org.springframework.security.core.userdetails.UserDetailsService {
 
     @Autowired
     private UserRepository userRepository;
@@ -28,140 +33,299 @@ public class UserService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    // Fetch all users
     public List<UserResponseDTO> getAllUsers() {
         return userRepository.findAll()
                 .stream()
-                .map(this::getUserResponse)
+                .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    public UserResponseDTO getUserInUserResponseDTO(Long id) {
-        User user = getUserById(id);
-        return getUserResponse(user);
+    // Fetch user by ID
+    public UserResponseDTO getUserById(Long id) throws UserNotFoundException {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + id));
+        return convertToResponseDTO(user);
     }
 
-    public User getUserById(Long id) throws UserNotFoundException {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User with ID " + id + " not found"));
-    }
+    // Create new user with optional profile photo
+    public User createUser(UserDTO userDTO, MultipartFile profilePhoto) {
+        User user = convertFromDTO(userDTO);
+        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
 
-    private UserResponseDTO getUserResponse(User user) {
-        UserResponseDTO userResponseDTO = new UserResponseDTO();
-        userResponseDTO.setUserId(user.getUserId());
-        userResponseDTO.setFirstName(user.getFirstName());
-        userResponseDTO.setLastName(user.getLastName());
-        userResponseDTO.setRole(user.getRole());
-        userResponseDTO.setEmail(user.getEmail());
-        userResponseDTO.setPhone(user.getPhone());
-        userResponseDTO.setAddress(user.getAddress());
-        userResponseDTO.setBirthday(user.getBirthday());
-        userResponseDTO.setJoinedClubs(user.getJoinedClubs());
-        userResponseDTO.setCreatedAt(user.getCreatedAt());
-        userResponseDTO.setUpdatedAt(user.getUpdatedAt());
-        userResponseDTO.setUserClubs(user.getUserClubs());
-        return userResponseDTO;
-    }
-
-    public User createUserFromDTO(UserDTO userDTO) throws UserAlreadyExistsException {
-        if (userRepository.findByEmail(userDTO.getEmail()) != null) {
-            throw new UserAlreadyExistsException("User with email " + userDTO.getEmail() + " already exists");
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            try {
+                user.setProfilePhoto(profilePhoto.getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException("Error processing profile photo");
+            }
         }
-        return saveUser(userDTO);
-    }
 
-    public UserResponseDTO updateUserFromDTO(Long id, UpdateUserDTO updatedUserDTO) throws UserNotFoundException {
-        User existingUser = getUserById(id);
-        User updatedUser = updateUser(updatedUserDTO, existingUser);
-        return getUserResponse(updatedUser);
-    }
-
-    private User updateUser(UpdateUserDTO userDTO, User existingUser) {
-        existingUser.setFirstName(userDTO.getFirstName());
-        existingUser.setLastName(userDTO.getLastName());
-        existingUser.setPhone(userDTO.getPhone());
-        existingUser.setAddress(userDTO.getAddress());
-        return userRepository.save(existingUser);
-    }
-
-    private User saveUser(UserDTO userDTO) {
-        User user = new User();
-        User savedUser = getUser(userDTO, user);
-        user.setUserId(savedUser.getUserId());
-        return user;
-
-    }
-
-    private User getUser(UserDTO userDTO, User user) {
-        user.setFirstName(userDTO.getFirstName());
-        user.setLastName(userDTO.getLastName());
-        user.setEmail(userDTO.getEmail());
-        user.setPhone(userDTO.getPhone());
-        user.setPassword(passwordEncoder.encode(userDTO.getPassword())); // Hash the password before saving it to the database
-        user.setAddress(userDTO.getAddress());
-        user.setRole(userDTO.getRole());
-        user.setBirthday(userDTO.getBirthday());
         return userRepository.save(user);
     }
 
+    // Update full user profile with optional profile photo
+    public UserResponseDTO updateUser(Long id, UpdateUserDTO updatedUserDTO, MultipartFile profilePhoto) throws UserNotFoundException {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        updateExistingUser(existingUser, updatedUserDTO);
+
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            try {
+                existingUser.setProfilePhoto(profilePhoto.getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException("Error processing profile photo");
+            }
+        }
+
+        return convertToResponseDTO(userRepository.save(existingUser));
+    }
+
+    private void updateExistingUser(User user, UpdateUserDTO dto) {
+        if (dto.getFirstName() != null && !dto.getFirstName().isBlank()) user.setFirstName(dto.getFirstName());
+        if (dto.getLastName() != null && !dto.getLastName().isBlank()) user.setLastName(dto.getLastName());
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) user.setPhone(dto.getPhone());
+        if (dto.getStreet() != null && !dto.getStreet().isBlank()) user.setStreet(dto.getStreet());
+        if (dto.getApartment() != null && !dto.getApartment().isBlank()) user.setApartment(dto.getApartment());
+        if (dto.getCity() != null && !dto.getCity().isBlank()) user.setCity(dto.getCity());
+        if (dto.getState() != null && !dto.getState().isBlank()) user.setState(dto.getState());
+        if (dto.getZipcode() != null && !dto.getZipcode().isBlank()) user.setZipcode(dto.getZipcode());
+        if (dto.getCountry() != null && !dto.getCountry().isBlank()) user.setCountry(dto.getCountry());
+        if (dto.getBio() != null && !dto.getBio().isBlank()) user.setBio(dto.getBio());
+    }
+
+    // PATCH: Update partial fields dynamically, including profile photo
+    public UserResponseDTO patchUser(Long id, Map<String, String> updates, MultipartFile profilePhoto) throws UserNotFoundException {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        updates.forEach((key, value) -> {
+            switch (key) {
+                case "firstName" -> {
+                    if (!value.isBlank()) user.setFirstName(value);
+                }
+                case "lastName" -> {
+                    if (!value.isBlank()) user.setLastName(value);
+                }
+                case "phone" -> {
+                    if (!value.isBlank()) user.setPhone(value);
+                }
+                case "street" -> {
+                    if (!value.isBlank()) user.setStreet(value);
+                }
+                case "apartment" -> {
+                    if (!value.isBlank()) user.setApartment(value);
+                }
+                case "city" -> {
+                    if (!value.isBlank()) user.setCity(value);
+                }
+                case "state" -> {
+                    if (!value.isBlank()) user.setState(value);
+                }
+                case "zipcode" -> {
+                    if (!value.isBlank()) user.setZipcode(value);
+                }
+                case "country" -> {
+                    if (!value.isBlank()) user.setCountry(value);
+                }
+                case "bio" -> {
+                    if (!value.isBlank()) user.setBio(value);
+                }
+                case "birthday" -> {
+                    if (!value.isBlank()) {
+                        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+                        Date birthday = null;
+                        try {
+                            birthday = formatter.parse(value);
+                        } catch (ParseException e) {
+                            throw new RuntimeException(e);
+                        }
+                        user.setBirthday(birthday);
+                    }
+                }
+                default -> throw new IllegalArgumentException("Invalid field: " + key);
+            }
+        });
+
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            try {
+                user.setProfilePhoto(profilePhoto.getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException("Error processing profile photo");
+            }
+        }
+
+        return convertToResponseDTO(userRepository.save(user));
+    }
+
+    // Delete user
     public void deleteUser(Long id) throws UserNotFoundException {
-        User existingUser = getUserById(id);
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User with ID " + id + " not found"));
         userRepository.delete(existingUser);
     }
 
-    public UserResponseDTO updateUserFromUserDTO(Long id, UserDTO userDTO) {
-        User existingUser = getUserById(id);
-        User updatedUser = updateUserByAdmin(userDTO, existingUser);
-        return getUserResponse(updatedUser);
+    // Convert User Entity to Response DTO
+    private UserResponseDTO convertToResponseDTO(User user) {
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setUserId(user.getUserId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setStreet(user.getStreet());
+        dto.setApartment(user.getApartment());
+        dto.setCity(user.getCity());
+        dto.setState(user.getState());
+        dto.setZipcode(user.getZipcode());
+        dto.setCountry(user.getCountry());
+
+        // Convert profile photo to Base64 string
+        if (user.getProfilePhoto() != null) {
+            dto.setProfilePhoto(Base64.getEncoder().encodeToString(user.getProfilePhoto()));
+        } else {
+            dto.setProfilePhoto(null);
+        }
+
+        dto.setBio(user.getBio());
+        dto.setJoinedClubs(user.getJoinedClubs());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setUpdatedAt(user.getUpdatedAt());
+
+        return dto;
     }
 
-    private User updateUserByAdmin(UserDTO userDTO, User existingUser) {
-        return getUser(userDTO, existingUser);
+    // Convert User DTO to Entity
+    private User convertFromDTO(UserDTO dto) {
+        User user = new User();
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setEmail(dto.getEmail());
+        user.setPhone(dto.getPhone());
+        user.setStreet(dto.getStreet());
+        user.setApartment(dto.getApartment());
+        user.setCity(dto.getCity());
+        user.setState(dto.getState());
+        user.setZipcode(dto.getZipcode());
+        user.setCountry(dto.getCountry());
+        user.setBio(dto.getBio());
+        user.setRole(dto.getRole());
+        user.setBirthday(dto.getBirthday());
+        return user;
     }
 
     public List<UserResponseDTO> getAllUsersStartingWithEmail(String email) {
         return userRepository.findByEmailStartingWith(email)
                 .stream()
-                .map(this::getUserResponse)
+                .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<UserResponseDTO> getAllUsersStartingWithName(String name) {
-        return userRepository.findByFirstNameAndLastNameStartingWith(name, name)
-                .stream()
-                .map(this::getUserResponse)
-                .collect(Collectors.toList());
-    }
 
-    /**
-     * Load user by email for authentication (Spring Security)
+    /*
+
+
+
+
      */
-    @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email);
 
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found with email: " + email);
-        }
-
-        // Convert role string into a list of SimpleGrantedAuthority
-        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
-
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                authorities
-        );
-    }
-
-
-    /**
-     * Fetch user role by email
-     */
+        // Get user role by email (for JWT token processing)
     public String getUserRole(String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new UsernameNotFoundException("User role not found for email: " + email);
         }
-        return "ROLE_" + user.getRole();
+        return user.getRole().toString();
+    }
+
+    // Load user for Spring Security Authentication
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found with email: " + email);
+        }
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                Collections.singletonList(new SimpleGrantedAuthority(user.getRole().toString()))
+        );
+    }
+
+    // Update user by Admin (full update)
+    public UserResponseDTO updateUserFromUserDTO(Long id, UserDTO userDTO, MultipartFile profilePhoto) {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return convertToResponseDTO(updateUserByAdmin(userDTO, existingUser, profilePhoto));
+    }
+
+    private User updateUserByAdmin(UserDTO userDTO, User existingUser, MultipartFile profilePhoto) {
+        if (userDTO.getFirstName() != null && !userDTO.getFirstName().isBlank())
+            existingUser.setFirstName(userDTO.getFirstName());
+
+        if (userDTO.getLastName() != null && !userDTO.getLastName().isBlank())
+            existingUser.setLastName(userDTO.getLastName());
+
+        if (userDTO.getEmail() != null && !userDTO.getEmail().isBlank())
+            existingUser.setEmail(userDTO.getEmail());
+
+        if (userDTO.getPhone() != null && !userDTO.getPhone().isBlank())
+            existingUser.setPhone(userDTO.getPhone());
+
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isBlank())
+            existingUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+
+        if (userDTO.getStreet() != null && !userDTO.getStreet().isBlank())
+            existingUser.setStreet(userDTO.getStreet());
+
+        if (userDTO.getApartment() != null && !userDTO.getApartment().isBlank())
+            existingUser.setApartment(userDTO.getApartment());
+
+        if (userDTO.getCity() != null && !userDTO.getCity().isBlank())
+            existingUser.setCity(userDTO.getCity());
+
+        if (userDTO.getState() != null && !userDTO.getState().isBlank())
+            existingUser.setState(userDTO.getState());
+
+        if (userDTO.getZipcode() != null && !userDTO.getZipcode().isBlank())
+            existingUser.setZipcode(userDTO.getZipcode());
+
+        if (userDTO.getCountry() != null && !userDTO.getCountry().isBlank())
+            existingUser.setCountry(userDTO.getCountry());
+
+        if (userDTO.getBio() != null && !userDTO.getBio().isBlank())
+            existingUser.setBio(userDTO.getBio());
+
+        if (userDTO.getRole() != null)
+            existingUser.setRole(userDTO.getRole());
+
+        if (userDTO.getBirthday() != null)
+            existingUser.setBirthday(userDTO.getBirthday());
+
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            try {
+                existingUser.setProfilePhoto(profilePhoto.getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException("Error processing profile photo");
+            }
+        }
+
+        return userRepository.save(existingUser);
+    }
+
+    public UserResponseDTO patchUserProfilePhoto(Long id, MultipartFile profilePhoto) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            try {
+                user.setProfilePhoto(profilePhoto.getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException("Error processing profile photo");
+            }
+        }
+
+        return convertToResponseDTO(userRepository.save(user));
     }
 }

@@ -1,19 +1,21 @@
 package org.studentclubmanagement.services;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.studentclubmanagement.dtos.ClubDTO;
+import org.studentclubmanagement.dtos.ClubResponseDTO;
 import org.studentclubmanagement.exceptions.ClubNotFoundException;
 import org.studentclubmanagement.exceptions.UserNotFoundException;
-import org.studentclubmanagement.models.Club;
-import org.studentclubmanagement.models.User;
+import org.studentclubmanagement.models.*;
 import org.studentclubmanagement.repositories.ClubRepository;
+import org.studentclubmanagement.repositories.UserClubRepository;
 import org.studentclubmanagement.repositories.UserRepository;
 
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,145 +27,222 @@ public class ClubService {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * Retrieves all clubs as a list of ClubDTOs.
-     *
-     * @return List of ClubDTOs
-     */
-    public List<ClubDTO> getAllClubs() {
-        List<Club> clubs = clubRepository.findAll();
-        return clubs.stream().map(this::mapToDTO).collect(Collectors.toList());
+    @Autowired
+    private UserClubRepository userClubRepository;
+
+    public List<ClubResponseDTO> getAllClubs() {
+        return clubRepository.findAll().stream()
+                .map(this::mapToClubResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    /**
-     * Retrieves a club by its ID and converts to ClubDTO with Base64-encoded image.
-     *
-     * @param id Club ID
-     * @return ClubDTO with Base64 image
-     * @throws ClubNotFoundException if Club not found
-     */
-    public ClubDTO getClubByIdWithImage(Long id) throws ClubNotFoundException {
+    public ClubResponseDTO getClubById(Long id) throws ClubNotFoundException {
         Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new ClubNotFoundException("Club with ID " + id + " not found"));
-
-        return mapToDTO(club);
+        return mapToClubResponseDTO(club);
     }
 
-    /**
-     * Finds a club by its name and returns as ClubDTO with Base64-encoded image.
-     *
-     * @param clubName Name of the club
-     * @return ClubDTO with Base64 image
-     * @throws ClubNotFoundException if Club not found
-     */
-    public ClubDTO findClubByNameWithImage(String clubName) throws ClubNotFoundException {
-        Club club = clubRepository.findByClubName(clubName);
-        if (club == null) {
-            throw new ClubNotFoundException("Club with name " + clubName + " not found");
-        }
-        return mapToDTO(club);
-    }
-
-    /**
-     * Creates a new club with an optional image.
-     *
-     * @param clubDTO Club data transfer object
-     * @return Created ClubDTO with Base64 image
-     */
-    public ClubDTO createClubWithImage(ClubDTO clubDTO) {
-        User admin = userRepository.findById(clubDTO.getAdminId())
-                .orElseThrow(() -> new UserNotFoundException("Admin not found"));
-
+    @Transactional
+    public ClubResponseDTO createClub(ClubResponseDTO clubResponseDTO) {
         Club club = new Club();
-        club.setClubName(clubDTO.getClubName());
-        club.setDescription(clubDTO.getDescription());
-        club.setNoOfMembers(clubDTO.getNoOfMembers());
-        club.setAvailableSlots(clubDTO.getAvailableSlots());
-        club.setTotalSlots(clubDTO.getTotalSlots());
-        club.setClubAdmin(admin);
+        club.setClubName(clubResponseDTO.getClubName());
+        club.setDescription(clubResponseDTO.getDescription());
 
-        // Convert image from MultipartFile to byte[] and store
-        if (clubDTO.getImage() != null && !clubDTO.getImage().isEmpty()) {
-            try {
-                club.setImage(clubDTO.getImage().getBytes());
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to upload image", e);
-            }
+        // Default values
+        club.setTotalSlots(clubResponseDTO.getTotalSlots() > 0 ? clubResponseDTO.getTotalSlots() : 20);
+        club.setNoOfMembers(0);
+        club.setAvailableSlots(club.getTotalSlots());
+
+        // Assign Club Admin if provided
+        if (clubResponseDTO.getAdminId() != null) {
+            assignClubAdmin(club, clubResponseDTO.getAdminId());
         }
+
+        saveClubImages(club, clubResponseDTO.getClubImage(), clubResponseDTO.getClubBackgroundImage());
 
         Club savedClub = clubRepository.save(club);
-        return mapToDTO(savedClub);
+        return mapToClubResponseDTO(savedClub);
     }
 
-    /**
-     * Updates an existing club with the provided data and optional image.
-     *
-     * @param id Club ID
-     * @param updatedClubDTO Updated ClubDTO data
-     * @param image MultipartFile for the image (optional)
-     * @return Updated ClubDTO with Base64 image
-     * @throws ClubNotFoundException if Club not found
-     */
-    public ClubDTO updateClubFromDTO(Long id, ClubDTO updatedClubDTO, MultipartFile image) throws ClubNotFoundException {
-        User admin = userRepository.findById(updatedClubDTO.getAdminId())
-                .orElseThrow(() -> new UserNotFoundException("Admin not found"));
+    @Transactional
+    public ClubResponseDTO updateClub(Long id, ClubResponseDTO updatedClubResponseDTO, MultipartFile clubImage, MultipartFile clubBackgroundImage) throws ClubNotFoundException {
         Club existingClub = clubRepository.findById(id)
                 .orElseThrow(() -> new ClubNotFoundException("Club with ID " + id + " not found"));
 
-        existingClub.setClubName(updatedClubDTO.getClubName());
-        existingClub.setDescription(updatedClubDTO.getDescription());
-        existingClub.setNoOfMembers(updatedClubDTO.getNoOfMembers());
-        existingClub.setAvailableSlots(updatedClubDTO.getAvailableSlots());
-        existingClub.setTotalSlots(updatedClubDTO.getTotalSlots());
-        existingClub.setClubAdmin(admin);
+        existingClub.setClubName(updatedClubResponseDTO.getClubName());
+        existingClub.setDescription(updatedClubResponseDTO.getDescription());
 
-        // If new image is provided, update it
-        if (image != null && !image.isEmpty()) {
-            try {
-                existingClub.setImage(image.getBytes());
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to upload image", e);
-            }
+        // Handle Total Slots, Available Slots, and Club Admin
+        if(updatedClubResponseDTO.getTotalSlots() > 0) updateSlots(existingClub, updatedClubResponseDTO.getTotalSlots());
+
+        if (updatedClubResponseDTO.getAdminId() != null) {
+            assignClubAdmin(existingClub, updatedClubResponseDTO.getAdminId());
         }
 
+        saveClubImages(existingClub, clubImage, clubBackgroundImage);
+
         Club updatedClub = clubRepository.save(existingClub);
-        return mapToDTO(updatedClub);
+        return mapToClubResponseDTO(updatedClub);
     }
 
-    /**
-     * Deletes a club by its ID.
-     *
-     * @param id Club ID
-     * @throws ClubNotFoundException if Club not found
-     */
+    @Transactional
+    public ClubResponseDTO patchClub(Long id, Map<String, String> updates, MultipartFile clubImage, MultipartFile clubBackgroundImage) throws ClubNotFoundException {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new ClubNotFoundException("Club not found"));
+
+        updates.forEach((key, value) -> {
+            switch (key) {
+                case "clubName" -> {
+                    if (!value.isBlank()) club.setClubName(value);
+                }
+                case "description" -> {
+                    if (!value.isBlank()) club.setDescription(value);
+                }
+                case "availableSlots" -> {
+                    if (!value.isBlank()) {
+                        int availableSlots = Integer.parseInt(value);
+                        if (availableSlots > club.getTotalSlots()) {
+                            throw new IllegalArgumentException("Available slots cannot be greater than total slots.");
+                        }
+                        club.setAvailableSlots(availableSlots);
+                    }
+                }
+                case "totalSlots" -> {
+                    if (!value.isBlank()) {
+                        updateSlots(club, Integer.parseInt(value));
+                    }
+                }
+                case "adminId" -> {
+                    if (!value.isBlank()) {
+                        assignClubAdmin(club, Long.parseLong(value));
+                    }
+                }
+            }
+        });
+
+        saveClubImages(club, clubImage, clubBackgroundImage);
+
+        return mapToClubResponseDTO(clubRepository.save(club));
+    }
+
+    @Transactional
+    public ClubResponseDTO patchClubImage(Long id, MultipartFile clubImage) throws ClubNotFoundException {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new ClubNotFoundException("Club not found"));
+
+        try {
+            if (clubImage == null || clubImage.isEmpty()) club.setClubImage(null);
+            else club.setClubImage(clubImage.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload image", e);
+        }
+
+        return mapToClubResponseDTO(clubRepository.save(club));
+    }
+
+    @Transactional
+    public ClubResponseDTO patchClubBackgroundImage(Long id, MultipartFile clubBackgroundImage) throws ClubNotFoundException {
+        Club club = clubRepository.findById(id)
+                .orElseThrow(() -> new ClubNotFoundException("Club not found"));
+
+        try {
+            if (clubBackgroundImage == null || clubBackgroundImage.isEmpty()) club.setClubBackgroundImage(null);
+            else  club.setClubBackgroundImage(clubBackgroundImage.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload image", e);
+        }
+
+        return mapToClubResponseDTO(clubRepository.save(club));
+    }
+
     public void deleteClub(Long id) throws ClubNotFoundException {
         Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new ClubNotFoundException("Club with ID " + id + " not found"));
         clubRepository.delete(club);
     }
 
-    /**
-     * Maps Club entity to ClubDTO including Base64-encoded image.
-     *
-     * @param club Club entity
-     * @return ClubDTO with Base64 image
-     */
-    private ClubDTO mapToDTO(Club club) {
-        ClubDTO clubDTO = new ClubDTO();
-        clubDTO.setClubName(club.getClubName());
-        clubDTO.setDescription(club.getDescription());
-        clubDTO.setNoOfMembers(club.getNoOfMembers());
-        clubDTO.setAvailableSlots(club.getAvailableSlots());
-        clubDTO.setTotalSlots(club.getTotalSlots());
-        clubDTO.setAdminId(club.getClubAdmin().getUserId());
-        clubDTO.setClubAdminFirstName(club.getClubAdmin().getFirstName());
-        clubDTO.setClubAdminLastName(club.getClubAdmin().getLastName());
+    @Transactional
+    protected void assignClubAdmin(Club club, Long adminId) {
+        User user = userRepository.findById(adminId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Convert image to Base64
-        if (club.getImage() != null) {
-            String base64Image = Base64.getEncoder().encodeToString(club.getImage());
-            clubDTO.setImageUrl("data:image/jpeg;base64," + base64Image);
+        // Check if user is already a Club Admin
+        if (user.getRole() == Role.CLUB_ADMIN) {
+            throw new IllegalArgumentException("User is already a Club Admin.");
         }
-        return clubDTO;
+        // Check if user is a Super Admin
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("User is a Super Admin and Cannot be assigned to Club Admin.");
+        }
+
+        // Check if user is in less than 3 clubs
+        if (user.getJoinedClubs() >= 3) {
+            throw new IllegalArgumentException("User is already in 3 clubs and cannot join another.");
+        }
+
+        // Assign user as Club Admin
+        user.setRole(Role.CLUB_ADMIN);
+        user.setJoinedClubs(user.getJoinedClubs() + 1);
+        club.setClubAdmin(user);
+
+        // Adjust club slots
+        club.setNoOfMembers(club.getNoOfMembers() + 1);
+        club.setAvailableSlots(club.getAvailableSlots() - 1);
+
+        // Add user to UserClub table
+        UserClub userClub = new UserClub();
+        userClub.setUser(user);
+        userClub.setClub(club);
+        userClubRepository.save(userClub);
+
+        userRepository.save(user);
+    }
+
+    private void updateSlots(Club club, int newTotalSlots) {
+        if (newTotalSlots < club.getNoOfMembers()) {
+            throw new IllegalArgumentException("Total slots cannot be less than the number of current members.");
+        }
+
+        int usedSlots = club.getTotalSlots() - club.getAvailableSlots();
+        int newAvailableSlots = newTotalSlots - usedSlots;
+        club.setTotalSlots(newTotalSlots);
+        club.setAvailableSlots(newAvailableSlots);
+    }
+
+    private void saveClubImages(Club club, MultipartFile clubImage, MultipartFile clubBackgroundImage) {
+        try {
+            if (clubImage != null && !clubImage.isEmpty()) {
+                club.setClubImage(clubImage.getBytes());
+            }
+            if (clubBackgroundImage != null && !clubBackgroundImage.isEmpty()) {
+                club.setClubBackgroundImage(clubBackgroundImage.getBytes());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload image", e);
+        }
+    }
+
+    private ClubResponseDTO mapToClubResponseDTO(Club club) {
+        ClubResponseDTO clubResponseDTO = new ClubResponseDTO();
+        clubResponseDTO.setClubId(club.getClubId());
+        clubResponseDTO.setClubName(club.getClubName());
+        clubResponseDTO.setDescription(club.getDescription());
+        clubResponseDTO.setNoOfMembers(club.getNoOfMembers());
+        clubResponseDTO.setAvailableSlots(club.getAvailableSlots());
+        clubResponseDTO.setTotalSlots(club.getTotalSlots());
+
+        if (club.getClubAdmin() != null) {
+            clubResponseDTO.setAdminId(club.getClubAdmin().getUserId());
+        }
+
+        if (club.getClubImage() != null) {
+            clubResponseDTO.setClubImageUrl(Base64.getEncoder().encodeToString(club.getClubImage()));
+        }
+
+        if (club.getClubBackgroundImage() != null) {
+            clubResponseDTO.setClubBackgroundImageUrl(Base64.getEncoder().encodeToString(club.getClubBackgroundImage()));
+        }
+
+        return clubResponseDTO;
     }
 }
