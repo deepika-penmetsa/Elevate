@@ -17,10 +17,8 @@ public class UserClub {
 
     @ManyToOne
     @JoinColumn(name = "club_id", nullable = false)
+    @JsonBackReference
     private Club club;
-
-    @Column(nullable = false)
-    private String comment;
 
     private LocalDateTime joinedDate;
     private LocalDateTime terminationDate;
@@ -85,13 +83,5 @@ public class UserClub {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
     }
 }

@@ -1,5 +1,6 @@
 package org.studentclubmanagement.config;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.studentclubmanagement.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
@@ -29,12 +30,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for JWT-based authentication
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Make it stateless
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll() // Allow login/signup
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow preflight requests
+                        .requestMatchers("/auth/**").permitAll() // Allow login & signup
                         .requestMatchers("/swagger-ui/**","/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**",
                                          "/configuration/ui", "/configuration/security", "/webjars/**").permitAll() // Allow Swagger access
-                        .requestMatchers("/admin/**").hasAuthority("ROLE_SUPER_ADMIN") // Super Admin Access
-                        .requestMatchers("/clubadmin/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CLUB_ADMIN") // Club Admin & Super Admin
-                        .requestMatchers("/student/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CLUB_ADMIN", "ROLE_STUDENT") // Student, Club Admin & Super Admin
+                        .requestMatchers("/admin/**").hasAuthority("SUPER_ADMIN") // Super Admin Access
+                        .requestMatchers("/clubadmin/**").hasAnyAuthority("SUPER_ADMIN", "CLUB_ADMIN") // Club Admin & Super Admin
+                        .requestMatchers("/student/**").hasAnyAuthority("SUPER_ADMIN", "CLUB_ADMIN", "STUDENT") // Student, Club Admin & Super Admin
                         .anyRequest().authenticated() // Secure everything else
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

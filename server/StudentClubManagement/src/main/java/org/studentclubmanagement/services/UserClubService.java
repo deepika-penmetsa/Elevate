@@ -51,7 +51,6 @@ public class UserClubService {
         UserClub userClub = new UserClub();
         userClub.setUser(user);
         userClub.setClub(club);
-        userClub.setComment(clubRequest.getComment());
         userClubRepository.save(userClub);
 
         // Update User & Club Details
@@ -67,17 +66,6 @@ public class UserClubService {
         clubRequestRepository.save(clubRequest);
     }
 
-
-    /**
-     * Reject a Club Request
-     */
-    public void rejectClubRequest(Long requestId) {
-        ClubRequest clubRequest = clubRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Club request not found"));
-
-        clubRequest.setStatus(RequestStatus.REJECTED);
-        clubRequestRepository.save(clubRequest);
-    }
 
     /**
      * Get All Clubs a User Has Joined
