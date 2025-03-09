@@ -9,26 +9,29 @@ public class ClubRequestDTO {
     private String clubName;
     private Long clubId;
     private RequestStatus requestStatus;
-    private String comment;
+    private String userComment;
+    private String approverComment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public ClubRequestDTO() {}
 
-    public ClubRequestDTO(Long userId, String clubName, Long clubId, String comment, RequestStatus requestStatus, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public ClubRequestDTO(Long userId, String clubName, Long clubId, String userComment, String approverComment, RequestStatus requestStatus, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userId = userId;
         this.clubName = clubName;
         this.clubId = clubId;
-        this.comment = comment;
+        this.userComment = userComment;
+        this.approverComment = approverComment;
         this.requestStatus = requestStatus;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
-    public ClubRequestDTO(Long userId, Long clubId, String comment) {
+    public ClubRequestDTO(Long userId, Long clubId, String userComment, RequestStatus status) {
         this.userId = userId;
         this.clubId = clubId;
-        this.comment = comment;
+        this.userComment = userComment;
+        this.requestStatus = status;
     }
 
     // Getters & Setters
@@ -49,12 +52,20 @@ public class ClubRequestDTO {
         this.clubId = clubId;
     }
 
-    public String getComment() {
-        return comment;
+    public String getUserComment() {
+        return userComment;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
+    public void setUserComment(String userComment) {
+        this.userComment = userComment;
+    }
+
+    public String getApproverComment() {
+        return approverComment;
+    }
+
+    public void setApproverComment(String approverComment) {
+        this.approverComment = approverComment;
     }
 
     public String getClubName() {

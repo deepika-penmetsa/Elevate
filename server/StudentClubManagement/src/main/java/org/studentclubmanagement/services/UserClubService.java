@@ -1,6 +1,5 @@
 package org.studentclubmanagement.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.studentclubmanagement.exceptions.*;
@@ -27,9 +26,11 @@ public class UserClubService {
 
     /**
      * Approve a Club Request and Add User to UserClub
+     *
+     * @return
      */
     @Transactional
-    public void approveClubRequest(Long requestId) throws ClubCapacityExceededException, ClubLimitExceededException, RequestAlreadyExistsException {
+    public ClubRequest approveClubRequest(Long requestId, String approverComment) throws ClubCapacityExceededException, ClubLimitExceededException, RequestAlreadyExistsException {
         ClubRequest clubRequest = clubRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Club request not found"));
 
@@ -63,7 +64,8 @@ public class UserClubService {
 
         // Update Request Status
         clubRequest.setStatus(RequestStatus.APPROVED);
-        clubRequestRepository.save(clubRequest);
+        clubRequest.setApproverComment(approverComment);
+        return clubRequestRepository.save(clubRequest);
     }
 
 

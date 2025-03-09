@@ -9,6 +9,8 @@ import org.studentclubmanagement.repositories.ClubRepository;
 import org.studentclubmanagement.repositories.UserRepository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class ClubRequestService {
@@ -48,7 +50,7 @@ public class ClubRequestService {
         ClubRequest clubRequest = new ClubRequest();
         clubRequest.setUser(user);
         clubRequest.setClub(club);
-        clubRequest.setComment(clubRequestDTO.getComment());
+        clubRequest.setUserComment(clubRequestDTO.getUserComment());
         clubRequest.setStatus(RequestStatus.PENDING);
 
         return clubRequestRepository.save(clubRequest);
@@ -61,26 +63,72 @@ public class ClubRequestService {
         return clubRequestRepository.findByClub_ClubIdAndStatus(clubId, RequestStatus.PENDING);
     }
 
-    /**
-     * Approve a Club Request
-     */
-    public void approveClubRequest(Long requestId) throws ClubLimitExceededException, ClubCapacityExceededException, RequestAlreadyExistsException {
+//    /**
+//     * Approve a Club Request
+//     */
+//    public void approveClubRequest(Long requestId, String approverComment) throws ClubLimitExceededException, ClubCapacityExceededException, RequestAlreadyExistsException {
+//        ClubRequest clubRequest = clubRequestRepository.findById(requestId)
+//                .orElseThrow(() -> new RuntimeException("Club request not found"));
+//
+//        // Ensure request is still pending
+//        if (!clubRequest.getStatus().equals(RequestStatus.PENDING)) {
+//            throw new RuntimeException("Club request is already processed.");
+//        }
+//
+//        // Delegate full approval process to UserClubService
+//        userClubService.approveClubRequest(requestId, approverComment);
+//    }
+
+
+
+    public List<ClubRequest> getClubRequestsByUserId(Long userId) {
+        return clubRequestRepository.findByUser_UserId(userId);
+    }
+
+    public ClubRequest patchUpdates(Long requestId, Map<String, String> updates) throws ClubLimitExceededException, ClubCapacityExceededException, RequestAlreadyExistsException {
         ClubRequest clubRequest = clubRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Club request not found"));
 
-        // Ensure request is still pending
-        if (!clubRequest.getStatus().equals(RequestStatus.PENDING)) {
+        if(!clubRequest.getStatus().equals(RequestStatus.PENDING)) {
             throw new RuntimeException("Club request is already processed.");
         }
 
-        // Delegate full approval process to UserClubService
-        userClubService.approveClubRequest(requestId);
+        AtomicBoolean isStatusUpdate = new AtomicBoolean(false);
+        StringBuilder statusUpdate = new StringBuilder();
+        StringBuilder approverComment = new StringBuilder();
+
+        updates.forEach((key, value) -> {
+            switch (key) {
+                case "status" -> {
+                    isStatusUpdate.set(true);
+                    if(value.equals("approved")) statusUpdate.append("approved");
+                    else if(value.equals("rejected")) statusUpdate.append("rejected");
+                    else throw new RuntimeException("Invalid status value");
+                }
+                case "approverComment" -> {
+                    if(isStatusUpdate.get() && !value.isBlank()) approverComment.append(value);
+                }
+                case "userComment" -> {
+                    if(!value.isBlank()) clubRequest.setUserComment(value);
+                }
+                default -> throw new IllegalArgumentException("Invalid field: " + key);
+            }
+        });
+
+        ClubRequest clubRequestUpdate = new ClubRequest();
+        if(isStatusUpdate.get()) {
+            if(statusUpdate.toString().equalsIgnoreCase("approved")) clubRequestUpdate =  userClubService.approveClubRequest(requestId, approverComment.toString());
+            else if(statusUpdate.toString().equalsIgnoreCase("rejected")) clubRequestUpdate =  rejectClubRequest(requestId, approverComment.toString());
+        }
+        return clubRequestUpdate;
     }
 
     /**
      * Reject a Club Request
+     *
+     * @return
      */
-    public void rejectClubRequest(Long requestId) {
+    public ClubRequest rejectClubRequest(Long requestId, String approverComment) {
         ClubRequest clubRequest = clubRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Club request not found"));
 
@@ -90,10 +138,7 @@ public class ClubRequestService {
         }
 
         clubRequest.setStatus(RequestStatus.REJECTED);
-        clubRequestRepository.save(clubRequest);
-    }
-
-    public List<ClubRequest> getClubRequestsByUserId(Long userId) {
-        return clubRequestRepository.findByUser_UserId(userId);
+        clubRequest.setApproverComment(approverComment);
+        return  clubRequestRepository.save(clubRequest);
     }
 }

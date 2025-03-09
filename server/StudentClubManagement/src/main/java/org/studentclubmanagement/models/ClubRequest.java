@@ -21,8 +21,9 @@ public class ClubRequest {
     @JsonIgnore
     private Club club;
 
-    @NotBlank(message = "Comment is mandatory")
-    private String comment;
+    private String userComment;
+
+    private String approverComment;
 
     @NotNull(message = "Request status is mandatory")
     @Enumerated(EnumType.STRING)
@@ -68,12 +69,20 @@ public class ClubRequest {
         this.club = club;
     }
 
-    public String getComment() {
-        return comment;
+    public String getUserComment() {
+        return userComment;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
+    public void setUserComment(String userComment) {
+        this.userComment = userComment;
+    }
+
+    public String getApproverComment() {
+        return approverComment;
+    }
+
+    public void setApproverComment(String approverComment) {
+        this.approverComment = approverComment;
     }
 
     public RequestStatus getStatus() {
