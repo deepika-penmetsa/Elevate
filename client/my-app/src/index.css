@@ -1,0 +1,16 @@
+
+@import url('https://fonts.googleapis.com/css?family=Merienda');
+:root {
+  --maroon: #7e1b26;
+  --offWhite: #fefefe;
+  --lightGrey: #f6f6f6;
+  --black: #000000;
+  --white: #ffffff;
+  --green: #30a644
+}
+
+body {
+  margin: 0;
+  font-family: "Merienda", "Shadows Into Light", 'Times New Roman', Times, serif;
+  background-color: var(--offWhite);
+} 

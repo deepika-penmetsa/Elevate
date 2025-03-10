@@ -1,0 +1,58 @@
+.dashboardContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+  }
+  
+  /* Empty State Section */
+  .emptyState {
+    background-color: --var(white);
+    padding: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .emptyText {
+    display: flex;
+    flex-direction: column;
+  }
+  .emptyImage {
+    width: 150px;
+  }
+  
+  .emptyTitle {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  
+  .emptySubtitle {
+    color: var(--black);
+    font-size: 1rem;
+  }
+  
+  /* Explore Section */
+  .exploreTitle {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 0px 3px;
+  }
+  
+  /* Club Grid Layout */
+.clubGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); /* Increased min size for better alignment */
+  gap: 30px; /* More spacing for better visual separation */
+  justify-content: center;
+  align-items: stretch;
+  padding: 0px 5px;
+}
+  
+  /* Loading & Error Text */
+  .loadingText, .errorText {
+    font-size: 1rem;
+    color: var(--black);
+  }
+  
