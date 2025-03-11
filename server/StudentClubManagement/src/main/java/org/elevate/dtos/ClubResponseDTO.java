@@ -10,13 +10,13 @@ public class ClubResponseDTO {
 
     private String description;
 
-    private int noOfMembers = 0;  // Default: 0 members while creating
+    private int noOfMembers;  // Default: 0 members while creating
 
     private int availableSlots;  // Default: totalSlots - noOfMembers
 
-    private int totalSlots = 20; // Default: 20 while creating a club
+    private int totalSlots; // Default: 20 while creating a club
 
-    private Long adminId = null; // Club Admin will be assigned later
+    private Long adminId; // Club Admin will be assigned later
 
     private MultipartFile clubImage;
     private MultipartFile clubBackgroundImage;

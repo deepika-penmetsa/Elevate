@@ -1,6 +1,5 @@
 package org.elevate.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -27,11 +26,13 @@ import java.util.stream.Collectors;
 @Service
 public class UserService implements org.springframework.security.core.userdetails.UserDetailsService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     // Fetch all users
     public List<UserResponseDTO> getAllUsers() {
@@ -135,7 +136,7 @@ public class UserService implements org.springframework.security.core.userdetail
                 case "birthday" -> {
                     if (!value.isBlank()) {
                         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-                        Date birthday = null;
+                        Date birthday;
                         try {
                             birthday = formatter.parse(value);
                         } catch (ParseException e) {

@@ -1,7 +1,6 @@
 package org.elevate.services;
 
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.elevate.dtos.ClubResponseDTO;
@@ -21,14 +20,17 @@ import java.util.stream.Collectors;
 @Service
 public class ClubService {
 
-    @Autowired
-    private ClubRepository clubRepository;
+    private final ClubRepository clubRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserClubRepository userClubRepository;
+    private final UserClubRepository userClubRepository;
+
+    public ClubService(ClubRepository clubRepository, UserRepository userRepository, UserClubRepository userClubRepository) {
+        this.clubRepository = clubRepository;
+        this.userRepository = userRepository;
+        this.userClubRepository = userClubRepository;
+    }
 
     public List<ClubResponseDTO> getAllClubs() {
         return clubRepository.findAll().stream()

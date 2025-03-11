@@ -14,9 +14,9 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Student Club Management API")
+                        .title("Elevate")
                         .version("1.0.0")
-                        .description("API documentation for the Student Club Management system"))
+                        .description("API documentation for Elevate: A Student Club Management system"))
                 .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
                 .components(new io.swagger.v3.oas.models.Components()
                         .addSecuritySchemes("BearerAuth",

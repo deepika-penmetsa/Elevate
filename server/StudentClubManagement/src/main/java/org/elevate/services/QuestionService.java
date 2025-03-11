@@ -1,6 +1,5 @@
 package org.elevate.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.elevate.dtos.AnswerResponseDTO;
 import org.elevate.dtos.QuestionRequestDTO;
@@ -24,15 +23,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class QuestionService {
 
-    @Autowired
-    private QuestionRepository questionRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ClubRepository clubRepository;
-    @Autowired
-    private AnswerRepository answerRepository;
+    private final QuestionRepository questionRepository;
+    private final UserRepository userRepository;
+    private final ClubRepository clubRepository;
+    private final AnswerRepository answerRepository;
 
+    public QuestionService(QuestionRepository questionRepository, UserRepository userRepository, ClubRepository clubRepository, AnswerRepository answerRepository) {
+        this.questionRepository = questionRepository;
+        this.userRepository = userRepository;
+        this.clubRepository = clubRepository;
+        this.answerRepository = answerRepository;
+    }
 
     public Question createQuestion(QuestionRequestDTO questionRequestDTO) throws ClubNotFoundException, UndefinedUserClubException {
         User user = userRepository.findById(questionRequestDTO.getUserId())
@@ -57,7 +58,7 @@ public class QuestionService {
         return questionRepository.save(question);
     }
 
-    public List<QuestionResponseDTO> getQuestionsByClub(int clubId) {
+    public List<QuestionResponseDTO> getQuestionsByClub(Long clubId) {
         // Fetch all questions by Club ID
         List<Question> questions = questionRepository.findByClub_ClubId(clubId);
 
@@ -86,7 +87,8 @@ public class QuestionService {
         }).toList();
 
         // Map answers to their respective questions
-        List<QuestionResponseDTO> responseDTOs = questions.stream().map(question -> {
+
+        return questions.stream().map(question -> {
             List<AnswerResponseDTO> questionAnswers = answerDTOs.stream()
                     .filter(answerDTO -> answerDTO.getQuestionId().equals(question.getQuestionId()))
                     .toList();
@@ -104,8 +106,6 @@ public class QuestionService {
 
             return dto;
         }).toList();
-
-        return responseDTOs;
     }
 
 

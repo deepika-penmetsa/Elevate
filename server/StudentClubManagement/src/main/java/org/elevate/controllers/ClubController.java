@@ -3,7 +3,6 @@ package org.elevate.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +20,11 @@ import java.util.Map;
 @Tag(name = "Club APIs", description = "APIs for managing and viewing clubs.")
 public class ClubController {
 
-    @Autowired
-    private ClubService clubService;
+    private final ClubService clubService;
+
+    public ClubController(ClubService clubService) {
+        this.clubService = clubService;
+    }
 
     @GetMapping("/student/clubs")
     @Operation(summary = "Get All Clubs", description = "Fetches a list of all clubs available in the system.")
