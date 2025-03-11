@@ -8,7 +8,7 @@
         <version>3.4.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>org.studentclubmanagement</groupId>
+    <groupId>org.elevate</groupId>
     <artifactId>Elevate</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Elevate</name>
