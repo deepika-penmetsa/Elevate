@@ -1,0 +1,137 @@
+/* Container */
+.container {
+  display: flex;
+  height: 100vh;
+  background-color: var(--offWhite);
+}
+
+/* Left Section - Branding */
+.leftSection {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logoContainer {
+  border-right:  3px solid var(--black);
+  height: 50%;
+  width: -webkit-fill-available;
+  display: flex;
+  justify-content: center;
+  border-radius: 3px;
+}
+
+.brandImage {
+  width: 200px;
+  height: auto;
+}
+
+/* Right Section - Login Form */
+.rightSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.form {
+  width: 350px;
+  padding: 20px;
+  background: var(--white);
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.input {
+  width: 95%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid var(--lightGrey);
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+/* Password Input with Eye Icon */
+.passwordContainer {
+  position: relative;
+}
+
+.eyeIcon {
+  position: absolute;
+  right: 10px;
+  top: 40%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--maroon);
+}
+
+.button {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--maroon);
+  color: var(--white);
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.button:hover {
+  background-color: #5e1620;
+}
+
+.links {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 350px;
+  margin-top: 10px;
+}
+
+.link {
+  color: var(--maroon);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 850px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+    height: 75vh;
+  }
+
+  .leftSection {
+    order: -1;
+    background: none;
+  }
+
+  .logoContainer {
+    border-right:  0px solid var(--black);
+  }
+
+  .brandImage {
+    width: 150px;
+    margin-bottom: 20px;
+  }
+
+  .rightSection {
+    width: 100%;
+    padding: 20px;
+  }
+}
