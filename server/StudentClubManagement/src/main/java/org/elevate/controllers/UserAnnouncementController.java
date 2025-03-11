@@ -16,8 +16,11 @@ import org.elevate.services.UserAnnouncementService;
 @Tag(name = "User Announcements API", description = "APIs for marking announcements as seen.")
 public class UserAnnouncementController {
 
-    @Autowired
-    private UserAnnouncementService userAnnouncementService;
+    private final UserAnnouncementService userAnnouncementService;
+
+    public UserAnnouncementController(UserAnnouncementService userAnnouncementService) {
+        this.userAnnouncementService = userAnnouncementService;
+    }
 
     /**
      * Marks an announcement as seen by a user.

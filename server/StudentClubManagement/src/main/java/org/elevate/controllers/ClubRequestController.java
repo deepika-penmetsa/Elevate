@@ -2,7 +2,11 @@ package org.elevate.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.elevate.dtos.ClubRequestForClub_ResponseDTO;
+import org.elevate.dtos.ClubRequestForUser_ResponseDTO;
 import org.elevate.exceptions.*;
 import org.elevate.models.RequestStatus;
 import org.springframework.http.HttpStatus;
@@ -69,14 +73,22 @@ public class ClubRequestController {
         summary = "Get Club Requests by Club ID",
         description = "Fetches all pending club requests for a specific club (Club Admin and Super Admin only)."
     )
-    public ResponseEntity<ApiResponseDTO<List<ClubRequest>>> getClubRequests(
+    public ResponseEntity<ApiResponseDTO<List<ClubRequestForClub_ResponseDTO>>> getClubRequests(
         @Parameter(description = "The unique ID of the club whose requests need to be retrieved", required = true, example = "1")
         @PathVariable Long clubId,
-        @RequestParam RequestStatus status
-    ) {
-        List<ClubRequest> requests = clubRequestService.getClubRequestsByClubId(clubId, status);
+        @Parameter(
+                description = "Filter requests by status",
+                in = ParameterIn.QUERY,
+                required = true,
+                example = "PENDING",
+                allowEmptyValue = true,
+                schema = @Schema(allowableValues = {"ALL", "PENDING", "APPROVED", "REJECTED"})
+        )
+        @RequestParam(defaultValue = "ALL") String status)
+    {
+        List<ClubRequestForClub_ResponseDTO> responseDTOS = clubRequestService.getClubRequestsByClubId(clubId, status);
 
-        return ResponseEntity.ok(new ApiResponseDTO<>("Club requests fetched successfully", requests));
+        return ResponseEntity.ok(new ApiResponseDTO<>("Club requests fetched successfully", responseDTOS));
     }
 
     /**
@@ -90,14 +102,21 @@ public class ClubRequestController {
         summary = "Get Club Requests by User ID",
         description = "Fetches all club requests made by a specific user."
     )
-    public ResponseEntity<ApiResponseDTO<List<ClubRequest>>> getClubRequestsByUser(
+    public ResponseEntity<ApiResponseDTO<List<ClubRequestForUser_ResponseDTO>>> getClubRequestsByUser(
         @Parameter(description = "The unique ID of the user whose club requests need to be retrieved", required = true, example = "1")
         @PathVariable Long userId,
-        @RequestParam RequestStatus status
-    ) {
-        List<ClubRequest> requests = clubRequestService.getClubRequestsByUserId(userId, status);
+        @Parameter(
+                description = "Filter requests by status",
+                in = ParameterIn.QUERY,
+                required = true,
+                example = "PENDING",
+                allowEmptyValue = true,
+                schema = @Schema(allowableValues = {"ALL", "PENDING", "APPROVED", "REJECTED", "WITHDRAWN"})
+        )@RequestParam(defaultValue = "ALL") String status)
+    {
+        List<ClubRequestForUser_ResponseDTO> responseDTOS = clubRequestService.getClubRequestsByUserId(userId, status);
 
-        return ResponseEntity.ok(new ApiResponseDTO<>("Club requests fetched successfully", requests));
+        return ResponseEntity.ok(new ApiResponseDTO<>("Club requests fetched successfully", responseDTOS));
     }
 
     @PatchMapping("/clubadmin/club-requests/{requestId}/update")
@@ -111,5 +130,18 @@ public class ClubRequestController {
     ) throws ClubLimitExceededException, ClubCapacityExceededException, RequestAlreadyExistsException {
         ClubRequest response = clubRequestService.patchUpdates(requestId, updates);
         return ResponseEntity.ok(new ApiResponseDTO<>("Club request updated successfully", response));
+    }
+
+
+    @PatchMapping("/student/club-requests/{requestId}/withdraw")
+    @Operation(
+            summary = "Withdraw a club request",
+            description = "Allows students to withdraw a club join request"
+    )
+    public ResponseEntity<ApiResponseDTO> withdrawClubRequest(
+            @PathVariable Long requestId
+    ) throws RecordNotFoundException {
+        clubRequestService.withdrawClubRequest(requestId);
+        return ResponseEntity.ok(new ApiResponseDTO<>("Club Request: " + requestId + " withdrawn successfully", null));
     }
 }

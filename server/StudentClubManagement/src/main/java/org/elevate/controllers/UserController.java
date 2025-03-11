@@ -3,7 +3,6 @@ package org.elevate.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +23,11 @@ import java.util.Map;
 @Tag(name = "User APIs", description = "APIs for managing user information, including retrieval, creation, updating, and deletion of users.")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping("/admin/users")
     @Operation(summary = "Get All Users", description = "Fetches a list of all registered users.")
@@ -58,10 +60,10 @@ public class UserController {
     @PostMapping(value = "/auth/users/signup", consumes = {"multipart/form-data"})
     @Operation(summary = "Register a New User", description = "Allows students to sign up and create an account.")
     public ResponseEntity<ApiResponseDTO> createUser(
-        @RequestParam(value = "firstName", required = true) String firstName,
-        @RequestParam(value = "lastName", required = true) String lastName,
-        @RequestParam(value = "email", required = true) String email,
-        @RequestParam(value = "password", required = true) String password,
+        @RequestParam String firstName,
+        @RequestParam String lastName,
+        @RequestParam String email,
+        @RequestParam String password,
         @RequestParam(value = "phone", required = false) String phone,
         @RequestParam(value = "street", required = false) String street,
         @RequestParam(value = "apartment", required = false) String apartment,
@@ -70,10 +72,17 @@ public class UserController {
         @RequestParam(value = "zipcode", required = false) String zipcode,
         @RequestParam(value = "country", required = false) String country,
         @RequestParam(value = "bio", required = false) String bio,
-        @RequestParam(value = "role", required = true) Role role,
+        @RequestParam Role role,
         @RequestParam(value = "birthday", required = false) String birthdayStr,
         @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto
     ) throws ParseException {
+
+        UserDTO userDTO = setUserFromUserParams(firstName, lastName, email, password, phone, street, apartment, city, state, zipcode, country, bio, role, birthdayStr);
+        User user = userService.createUser(userDTO, profilePhoto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponseDTO("User Registered Successfully", user));
+    }
+
+    private UserDTO setUserFromUserParams(@RequestParam String firstName, @RequestParam String lastName, @RequestParam String email, @RequestParam String password, @RequestParam(value = "phone", required = false) String phone, @RequestParam(value = "street", required = false) String street, @RequestParam(value = "apartment", required = false) String apartment, @RequestParam(value = "city", required = false) String city, @RequestParam(value = "state", required = false) String state, @RequestParam(value = "zipcode", required = false) String zipcode, @RequestParam(value = "country", required = false) String country, @RequestParam(value = "bio", required = false) String bio, @RequestParam Role role, @RequestParam(value = "birthday", required = false) String birthdayStr) throws ParseException {
         UserDTO userDTO = new UserDTO();
         userDTO.setFirstName(firstName);
         userDTO.setLastName(lastName);
@@ -93,11 +102,8 @@ public class UserController {
             Date birthday = formatter.parse(birthdayStr);
             userDTO.setBirthday(birthday);
         }
-
-        User user = userService.createUser(userDTO, profilePhoto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponseDTO("User Registered Successfully", user));
+        return userDTO;
     }
-
 
 
     /**
@@ -162,27 +168,8 @@ public class UserController {
         @RequestParam(value = "birthday", required = false) String birthdayStr,
         @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto
     ) throws ParseException {
-        UserDTO userDTO = new UserDTO();
-        userDTO.setFirstName(firstName);
-        userDTO.setLastName(lastName);
-        userDTO.setEmail(email);
-        userDTO.setPassword(password);
-        userDTO.setPhone(phone);
-        userDTO.setStreet(street);
-        userDTO.setApartment(apartment);
-        userDTO.setCity(city);
-        userDTO.setState(state);
-        userDTO.setZipcode(zipcode);
-        userDTO.setCountry(country);
-        userDTO.setBio(bio);
-        userDTO.setRole(role);
 
-        if (birthdayStr != null && !birthdayStr.isEmpty()) {
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-            Date birthday = formatter.parse(birthdayStr);
-            userDTO.setBirthday(birthday);
-        }
-
+        UserDTO userDTO = setUserFromUserParams(firstName, lastName, email, password, phone, street, apartment, city, state, zipcode, country, bio, role, birthdayStr);
         return ResponseEntity.ok(new ApiResponseDTO<>("User updated successfully", userService.updateUserFromUserDTO(id, userDTO, profilePhoto)));
     }
 
@@ -212,7 +199,7 @@ public class UserController {
     @Operation(summary = "Update User Profile Photo", description = "Allows to update user profile photo without modifying other details.")
     public ResponseEntity<ApiResponseDTO<UserResponseDTO>> patchUser(
         @Parameter(description = "The user ID", required = true, example = "1") @PathVariable Long id,
-        @RequestParam(value = "profilePhoto", required = true) MultipartFile profilePhoto
+        @RequestParam MultipartFile profilePhoto
     ){
         return ResponseEntity.ok(new ApiResponseDTO<>("User updated successfully", userService.patchUserProfilePhoto(id, profilePhoto)));
     }

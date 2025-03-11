@@ -10,5 +10,5 @@ import java.util.List;
 public interface QuestionRepository extends JpaRepository<Question, Long> {
     Question findByTitle(String title);
 
-    List<Question> findByClub_ClubId(int clubId);
+    List<Question> findByClub_ClubId(Long clubId);
 }

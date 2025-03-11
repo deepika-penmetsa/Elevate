@@ -1,7 +1,6 @@
 package org.elevate.services;
 
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.elevate.exceptions.RecordNotFoundException;
 import org.elevate.models.UserAnnouncement;
@@ -10,8 +9,12 @@ import org.elevate.repositories.UserAnnouncementRepository;
 @Service
 public class UserAnnouncementService {
 
-    @Autowired
-    private UserAnnouncementRepository userAnnouncementRepository;
+    private final UserAnnouncementRepository userAnnouncementRepository;
+
+    public UserAnnouncementService(UserAnnouncementRepository userAnnouncementRepository) {
+        this.userAnnouncementRepository = userAnnouncementRepository;
+    }
+
 
     /**
      * Marks an announcement as seen by a specific user.

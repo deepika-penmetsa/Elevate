@@ -22,8 +22,11 @@ import java.util.List;
 @Tag(name = "Question APIs", description = "APIs for managing questions in clubs, allowing users to post and retrieve questions.")
 public class QuestionController {
 
-    @Autowired
-    private QuestionService questionService;
+    private final QuestionService questionService;
+
+    public QuestionController(QuestionService questionService) {
+        this.questionService = questionService;
+    }
 
     /**
      * Creates a new question within a club (Accessible by Students, Club Admins, and Super Admins).
@@ -58,7 +61,7 @@ public class QuestionController {
     )
     public ResponseEntity<ApiResponseDTO<List<QuestionResponseDTO>>> getQuestionsByClub(
         @Parameter(description = "The unique ID of the club whose questions need to be retrieved", required = true, example = "1")
-        @PathVariable int clubId
+        @PathVariable Long clubId
     ) {
         List<QuestionResponseDTO> questions = questionService.getQuestionsByClub(clubId);
         return ResponseEntity.ok(new ApiResponseDTO<>("Questions fetched successfully", questions));

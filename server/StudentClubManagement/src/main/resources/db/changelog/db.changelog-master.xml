@@ -19,11 +19,19 @@
     </changeSet>
     <changeSet id="alter-club-check-constraint" author="RANJITH-REDDY-N">
         <sql>
-            ALTER TABLE CLUB DROP CONSTRAINT club_chk_1;
-            ALTER TABLE CLUB ADD CONSTRAINT club_chk_1 CHECK (available_slots >= 0);
+            ALTER TABLE club DROP CONSTRAINT club_chk_1;
+            ALTER TABLE club ADD CONSTRAINT club_chk_1 CHECK (available_slots >= 0);
         </sql>
     </changeSet>
     <changeSet id="drop-user-birthday-column" author="RANJITH-REDDY-N">
-        <dropColumn tableName="user" columnName="birthday"></dropColumn>
+        <dropColumn tableName="user" columnName="birthday"/>
     </changeSet>
+
+    <changeSet id="alter-enum-status-column" author="RANJITH-REDDY-N">
+        <comment>Add WITHDRAWN to status column in Club_Request</comment>
+        <sql>
+            ALTER TABLE club_request MODIFY COLUMN status ENUM('PENDING', 'APPROVED', 'REJECTED', 'WITHDRAWN') NOT NULL;
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>
