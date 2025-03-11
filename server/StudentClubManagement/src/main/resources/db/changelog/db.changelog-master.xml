@@ -5,9 +5,25 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <include file="db/changelog/v1_0_1__U_Remove_address_COLUMN.sql"/>
-    <include file="db/changelog/v1_0_2__C_Remove_image_COLUMN.sql"/>
-    <include file="db/changelog/v1_0_3__UC_Remove_comment_COLUMN.sql"/>
-    <include file="db/changelog/v1_0_4__CR_Remove_comment_COLUMN.sql"/>
-
+    <changeSet id="drop-user-address-column" author="RANJITH-REDDY-N">
+        <dropColumn tableName="user" columnName="address"/>
+    </changeSet>
+    <changeSet id="drop-club-image-column" author="RANJITH-REDDY-N">
+        <dropColumn tableName="club" columnName="image"/>
+    </changeSet>
+    <changeSet id="drop-user-club-comment-column" author="RANJITH-REDDY-N">
+        <dropColumn tableName="user_club" columnName="comment"/>
+    </changeSet>
+    <changeSet id="drop-club-request-comment-column" author="RANJITH-REDDY-N">
+        <dropColumn tableName="club_request" columnName="comment"/>
+    </changeSet>
+    <changeSet id="alter-club-check-constraint" author="RANJITH-REDDY-N">
+        <sql>
+            ALTER TABLE CLUB DROP CONSTRAINT club_chk_1;
+            ALTER TABLE CLUB ADD CONSTRAINT club_chk_1 CHECK (available_slots >= 0);
+        </sql>
+    </changeSet>
+    <changeSet id="drop-user-birthday-column" author="RANJITH-REDDY-N">
+        <dropColumn tableName="user" columnName="birthday"></dropColumn>
+    </changeSet>
 </databaseChangeLog>
