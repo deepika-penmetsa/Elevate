@@ -66,7 +66,12 @@ public class AnnouncementController {
             Pageable pageable
     ) {
         Page<AnnouncementResponseDTO> announcements = announcementService.getAnnouncementsByType(clubId, userId, type, pageable);
-        return ResponseEntity.ok(new ApiResponseDTO<>("Announcements retrieved successfully", announcements));
+        StringBuilder message = new StringBuilder("Announcements retrieved successfully");
+        if(type.equals(AnnouncementType.EVENT)){
+             message.setLength(0);
+             message.append("Events retrieved successfully");
+        }
+        return ResponseEntity.ok(new ApiResponseDTO<>(message.toString(), announcements));
     }
 
     /**
@@ -82,6 +87,11 @@ public class AnnouncementController {
     ) {
 
         Page<AnnouncementResponseDTO> unseenAnnouncements = announcementService.getUnseenAnnouncementsByType(clubId, userId, type, pageable);
-        return ResponseEntity.ok(new ApiResponseDTO<>("Unseen announcements retrieved successfully", unseenAnnouncements));
+        StringBuilder message = new StringBuilder("Unseen Announcements retrieved successfully");
+        if(type.equals(AnnouncementType.EVENT)){
+             message.setLength(0);
+             message.append("Unseen Events retrieved successfully");
+        }
+        return ResponseEntity.ok(new ApiResponseDTO<>(message.toString(), unseenAnnouncements));
     }
 }

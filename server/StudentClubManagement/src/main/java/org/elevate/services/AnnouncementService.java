@@ -103,16 +103,18 @@ public class AnnouncementService {
      * Retrieves paginated announcements by type (Events or General Announcements).
      */
     public Page<AnnouncementResponseDTO> getAnnouncementsByType(Long clubId, Long userId, AnnouncementType type, Pageable pageable) {
-        List<AnnouncementResponseDTO> announcements = announcementRepository.findAllAnnouncementsWithSeenStatusAndType(userId, clubId, type);
-        return new PageImpl<>(announcements, pageable, announcements.size());
+//        List<AnnouncementResponseDTO> announcements = announcementRepository.findAllAnnouncementsWithSeenStatusAndType(userId, clubId, type, pageable);
+//        return new PageImpl<>(announcements, pageable, announcements.size());
+          return announcementRepository.findAllAnnouncementsWithSeenStatusAndType(userId, clubId, type, pageable);
     }
 
     /**
      * Retrieves paginated unseen announcements by type (Events or General Announcements).
      */
     public Page<AnnouncementResponseDTO> getUnseenAnnouncementsByType(Long clubId, Long userId, AnnouncementType type, Pageable pageable) {
-        List<AnnouncementResponseDTO> unseenAnnouncements = announcementRepository.findUnseenAnnouncementsWithSeenStatusAndType(userId, clubId, type);
-        return new PageImpl<>(unseenAnnouncements, pageable, unseenAnnouncements.size());
+//        List<AnnouncementResponseDTO> unseenAnnouncements = announcementRepository.findUnseenAnnouncementsWithSeenStatusAndType(userId, clubId, type);
+//        return new PageImpl<>(unseenAnnouncements, pageable, unseenAnnouncements.size());
+        return announcementRepository.findUnseenAnnouncementsWithSeenStatusAndType(userId, clubId, type, pageable);
     }
 
 
